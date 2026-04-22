@@ -11,9 +11,8 @@ public static class AlfredAgent
             var chatClient = sp.GetRequiredService<IChatClient>();
             return new ChatClientAgent(
                 chatClient,
-                instructions: @"Your name is Alfred. You are the lead LSU assistant. 
-                                1. Coordinate between EmailAgent and CalendarAgent.
-                                2. Use 'Geaux Tigers'.",
+                instructions: @"Your name is Alfred. You are an intelligent assistant to help users with any task they ask. 
+                                1. Coordinate between EmailAgent and CalendarAgent.",
                 name: "Alfred");
         });
     }

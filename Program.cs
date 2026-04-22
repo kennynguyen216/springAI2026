@@ -8,8 +8,8 @@ using OpenAI;
 using System.ClientModel;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddControllers();
 
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=NewAgentDB.db"));
@@ -28,14 +28,13 @@ builder.Services.AddScoped<IChatClient>(sp =>
     return openAiClient;
 });
 
-// Register Separated Agents
 builder.Services.AddAlfredAgent();
 builder.Services.AddEmailAgent();
 builder.Services.AddCalendarAgent();
 
 var app = builder.Build();
 
-// Static Files & Frontend Configuration
+// Static Files Configuration
 var frontendPath = Path.Combine(builder.Environment.ContentRootPath, "frontend");
 if (Directory.Exists(frontendPath))
 {
@@ -47,7 +46,7 @@ if (Directory.Exists(frontendPath))
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    dbContext.Database.EnsureDeleted();
+    // EnsureCreated checks for the models defined in your Database.cs
     dbContext.Database.EnsureCreated();
 }
 
@@ -60,23 +59,26 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
     try
     {
         string threadId = request.ThreadId ?? Guid.NewGuid().ToString("N");
+        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        string downloadsPath = Path.Combine(userProfile, "Downloads");
+
         
         var transport = new StdioClientTransport(new StdioClientTransportOptions
         {
             Command = "npx",
-            Arguments = ["-y", "@modelcontextprotocol/server-filesystem", @"C:\Users\jhong14\OneDrive - Louisiana State University\Desktop", @"C:\Users\jhong14\Downloads"]
+            Arguments = ["-y", "@modelcontextprotocol/server-filesystem", desktopPath, downloadsPath]
         });
 
         await using var mcpClient = await McpClient.CreateAsync(transport);
         var mcpTools = await mcpClient.ListToolsAsync();
 
-        // Recall History from DB
+        // Recall History using models from Database.cs
         var dbMessages = await db.Messages
             .Where(m => m.ThreadId == threadId)
             .OrderBy(m => m.Timestamp)
             .ToListAsync();
 
-        // Map messages to the correct immutable ChatMessage type
         var historyMessages = new List<Microsoft.Extensions.AI.ChatMessage>();
         foreach (var m in dbMessages)
         {
@@ -84,7 +86,6 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
             historyMessages.Add(new Microsoft.Extensions.AI.ChatMessage(role, m.Content));
         }
 
-        // Add current user message to the context list
         historyMessages.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, request.Message));
 
         var alfredCapabilities = new List<AITool>
@@ -102,12 +103,7 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
 
         var runOptions = new ChatClientAgentRunOptions 
         { 
-            ChatOptions = new ChatOptions 
-            { 
-                Tools = allTools,
-                //StopSequences = ["}}"],
-                Temperature = 0.0f
-            } 
+            ChatOptions = new ChatOptions { Tools = allTools, Temperature = 0.0f } 
         };
 
         var agent = sp.GetRequiredKeyedService<AIAgent>("ChatAgent");
@@ -121,6 +117,11 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
         var result = await ((ChatClientAgent)agent).RunAsync(historyMessages, agentSession, runOptions);
         var responseText = result.Text ?? "No response.";
 
+        // Save history to your SQLite DB
+        db.Messages.Add(new ChatMessage { ThreadId = threadId, Role = "user", Content = request.Message, Timestamp = DateTime.UtcNow });
+        db.Messages.Add(new ChatMessage { ThreadId = threadId, Role = "assistant", Content = responseText, Timestamp = DateTime.UtcNow });
+        await db.SaveChangesAsync();
+
         return Results.Ok(new ChatResponse(responseText, threadId));
     }
     catch (Exception ex)
@@ -130,31 +131,19 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
     }
 });
 
-// Thread History Endpoints ---
-app.MapGet("/threads", async (AppDbContext db) => 
-    await db.Threads.Select(t => t.Id).ToListAsync());
+// Calendar & History Endpoints
+app.MapGet("/events", async (AppDbContext db) => await db.Events.OrderBy(e => e.EventDate).ToListAsync());
 
-app.MapGet("/threads/{id}", async (string id, AppDbContext db) =>
-{
-    var messages = await db.Messages
-        .Where(m => m.ThreadId == id)
-        .OrderBy(m => m.Timestamp)
-        .Select(m => new { m.Role, m.Content })
-        .ToListAsync();
-    return Results.Ok(messages);
-});
-
-// Calendar Endpoint
-app.MapGet("/events", async (AppDbContext db) => 
-{
-    // Fetches all extracted deadlines and orders them chronologically
-    return await db.Events
-        .OrderBy(e => e.EventDate)
-        .ToListAsync();
+app.MapDelete("/events/{id}", async (int id, AppDbContext db) => {
+    var ev = await db.Events.FindAsync(id);
+    if (ev == null) return Results.NotFound();
+    db.Events.Remove(ev);
+    await db.SaveChangesAsync();
+    return Results.Ok();
 });
 
 app.Run();
 
-// Data Models ---
+// API Records
 public record ChatRequest(string Message, string? ThreadId = null);
 public record ChatResponse(string Response, string ThreadId);
