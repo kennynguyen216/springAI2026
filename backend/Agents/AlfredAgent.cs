@@ -1,0 +1,54 @@
+using System.ComponentModel;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
+
+public static class AlfredAgent
+{
+    public static void AddAlfredAgent(this IServiceCollection services)
+    {
+        services.AddKeyedScoped<AIAgent>("ChatAgent", (sp, key) =>
+        {
+            var chatClient = sp.GetRequiredService<IChatClient>();
+            return new ChatClientAgent(
+                chatClient,
+                instructions: @"Your name is Alfred. You are the lead LSU assistant. 
+                                1. Coordinate between EmailAgent and CalendarAgent.
+                                2. Use 'Geaux Tigers'.",
+                name: "Alfred");
+        });
+    }
+
+    public static class AlfredCapabilities
+    {
+        [Description("Asks the Email Specialist to parse text.")]
+        public static async Task<string> AskEmailAgent(string text, IServiceProvider sp, string threadId)
+        {
+            var agent = sp.GetRequiredKeyedService<AIAgent>("EmailAgent");
+            var manager = sp.GetRequiredService<AgentSessionManager>();
+            var session = await GetSession(threadId, "email", agent, manager);
+            var result = await agent.RunAsync(text, session);
+            return result.Text ?? "No details found.";
+        }
+
+        [Description("Asks the Calendar Specialist to schedule an event.")]
+        public static async Task<string> AskCalendarAgent(string details, IServiceProvider sp, string threadId)
+        {
+            var agent = sp.GetRequiredKeyedService<AIAgent>("CalendarAgent");
+            var manager = sp.GetRequiredService<AgentSessionManager>();
+            var session = await GetSession(threadId, "cal", agent, manager);
+            var result = await agent.RunAsync(details, session);
+            return result.Text ?? "Event scheduled.";
+        }
+
+        private static async Task<Microsoft.Agents.AI.AgentSession> GetSession(string tId, string suffix, AIAgent agent, AgentSessionManager mgr)
+        {
+            string key = $"{tId}_{suffix}";
+            if (!mgr.Sessions.TryGetValue(key, out var s))
+            {
+                s = await agent.CreateSessionAsync();
+                mgr.Sessions[key] = s;
+            }
+            return s;
+        }
+    }
+}
