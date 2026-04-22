@@ -8,6 +8,7 @@ using OpenAI;
 using System.ClientModel;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -93,7 +94,8 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
             AIFunctionFactory.Create(AgentTools.GetWeatherAndTime),
             AIFunctionFactory.Create(AgentTools.ReadPdf),
             AIFunctionFactory.Create(AgentTools.ReadWord),
-            AIFunctionFactory.Create(AgentTools.ReadRecentEmails)
+            AIFunctionFactory.Create(AgentTools.ReadRecentEmails),
+            AIFunctionFactory.Create(AgentTools.AddToCalendar),
         };
 
         var allTools = mcpTools.Cast<AITool>().Concat(alfredCapabilities).ToList();
@@ -140,6 +142,15 @@ app.MapGet("/threads/{id}", async (string id, AppDbContext db) =>
         .Select(m => new { m.Role, m.Content })
         .ToListAsync();
     return Results.Ok(messages);
+});
+
+// Calendar Endpoint
+app.MapGet("/events", async (AppDbContext db) => 
+{
+    // Fetches all extracted deadlines and orders them chronologically
+    return await db.Events
+        .OrderBy(e => e.EventDate)
+        .ToListAsync();
 });
 
 app.Run();

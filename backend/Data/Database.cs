@@ -23,4 +23,13 @@ public class AppDbContext : DbContext
 
     public DbSet<ChatThread> Threads { get; set; }
     public DbSet<ChatMessage> Messages { get; set; }
+    public DbSet<CalendarEvent> Events { get; set;}
+}
+
+public class CalendarEvent
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public DateTime EventDate { get; set; }
+    public string Description { get; set; } = string.Empty;
 }

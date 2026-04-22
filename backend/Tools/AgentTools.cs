@@ -128,4 +128,27 @@ public static class AgentTools
             return $"I was able to connect to the inbox, but I encountered a technical issue reading the message content. Please try again or check the terminal logs.";
         }
     }
+
+    [Description("Saves a new event to the user's personal calendar database.")]
+    public static async Task<string> AddToCalendar(string title, string dateStr, string description, IServiceProvider sp)
+    {
+        using var scope = sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        if (DateTime.TryParse(dateStr, out DateTime parsedDate))
+        {
+            var newEvent = new CalendarEvent 
+            { 
+                Title = title, 
+                EventDate = parsedDate, 
+                Description = description 
+            };
+        
+            db.Events.Add(newEvent);
+            await db.SaveChangesAsync();
+            return $"Successfully added '{title}' to your calendar for {parsedDate:MMMM dd, yyyy}.";
+        }
+    
+        return "I couldn't parse that date. Please tell me the date in a clearer format (e.g., YYYY-MM-DD).";
+    }
 }
