@@ -120,6 +120,33 @@ public class SmokeTests
         }
     }
 
+    [Fact]
+    public void LocalDocumentService_ResolvesBareFilenameToRecentMatch()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"springAI2026-doc-read-{Guid.NewGuid():N}");
+        var docs = Path.Combine(root, "Documents");
+        Directory.CreateDirectory(docs);
+
+        try
+        {
+            var filePath = Path.Combine(docs, "ethics_essay.txt");
+            File.WriteAllText(filePath, "Ethics essay content.");
+            File.SetLastWriteTimeUtc(filePath, new DateTime(2026, 4, 24, 9, 0, 0, DateTimeKind.Utc));
+
+            var service = new LocalDocumentService(new TestEnvironment(), [root, docs]);
+
+            var resolved = service.ResolveDocumentPath("ethics_essay.txt");
+            var text = service.ReadDocumentText("ethics_essay.txt");
+
+            Assert.Equal(filePath, resolved);
+            Assert.Equal("Ethics essay content.", text);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
     private sealed class TestEnvironment : IWebHostEnvironment
     {
         public string ApplicationName { get; set; } = "CARTS.Tests";

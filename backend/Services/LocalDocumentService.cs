@@ -85,12 +85,18 @@ public sealed class LocalDocumentService
     {
         try
         {
-            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            var resolvedPath = ResolveDocumentPath(filePath);
+            if (resolvedPath is null)
+            {
+                return $"I couldn't find a local document matching '{filePath}'.";
+            }
+
+            var extension = Path.GetExtension(resolvedPath).ToLowerInvariant();
             return extension switch
             {
-                ".pdf" => ReadPdf(filePath),
-                ".docx" => ReadWord(filePath),
-                ".txt" or ".md" or ".rtf" => File.ReadAllText(filePath),
+                ".pdf" => ReadPdf(resolvedPath),
+                ".docx" => ReadWord(resolvedPath),
+                ".txt" or ".md" or ".rtf" => File.ReadAllText(resolvedPath),
                 _ => $"Unsupported document type: {extension}"
             };
         }
@@ -98,6 +104,44 @@ public sealed class LocalDocumentService
         {
             return $"Error reading document: {ex.Message}";
         }
+    }
+
+    public string? ResolveDocumentPath(string filePathOrName)
+    {
+        if (string.IsNullOrWhiteSpace(filePathOrName))
+        {
+            return null;
+        }
+
+        if (Path.IsPathRooted(filePathOrName) && File.Exists(filePathOrName))
+        {
+            return Path.GetFullPath(filePathOrName);
+        }
+
+        var normalizedInput = filePathOrName.Trim();
+        var fileName = Path.GetFileName(normalizedInput);
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+        var extension = Path.GetExtension(fileName);
+
+        if (!string.IsNullOrWhiteSpace(baseName))
+        {
+            var exactNameMatches = FindRecentDocuments(fileName, 10, string.IsNullOrWhiteSpace(extension) ? null : [extension])
+                .Where(match => string.Equals(match.Name, fileName, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            if (exactNameMatches.Length > 0)
+            {
+                return exactNameMatches[0].FullPath;
+            }
+
+            var baseNameMatches = FindRecentDocuments(baseName, 10, string.IsNullOrWhiteSpace(extension) ? null : [extension]);
+            if (baseNameMatches.Count > 0)
+            {
+                return baseNameMatches[0].FullPath;
+            }
+        }
+
+        return null;
     }
 
     public string DescribeMostRecentDocument(string keyword)
