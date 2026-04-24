@@ -1,0 +1,20 @@
+# Build output
+bin/
+obj/
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
+# User secrets and local config
+appsettings.local.json
+
+# VS / Rider
+.vs/
+*.user
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
