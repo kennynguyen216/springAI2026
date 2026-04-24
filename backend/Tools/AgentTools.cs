@@ -1,14 +1,13 @@
 using System.ComponentModel;
 using System.Text;
 using Microsoft.Agents.AI;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using UglyToad.PdfPig;
 using DocumentFormat.OpenXml.Packaging;
 
 public static class AgentTools
 {
-    private static readonly HttpClient _httpClient = new HttpClient();
+    private static readonly HttpClient _httpClient = new();
 
     [Description("Gets the current time and current weather conditions for a specific city or location.")]
     public static async Task<string> GetWeatherAndTime(string location)
@@ -16,9 +15,9 @@ public static class AgentTools
         var currentTime = DateTime.Now.ToString("h:mm tt on dddd, MMMM d, yyyy");
         try
         {
-            string formattedLocation = location.Replace(" ", "+");
-            string url = $"https://wttr.in/{formattedLocation}?format=3";
-            string weatherReport = await _httpClient.GetStringAsync(url);
+            var formattedLocation = location.Replace(" ", "+");
+            var url = $"https://wttr.in/{formattedLocation}?format=3";
+            var weatherReport = await _httpClient.GetStringAsync(url);
             return $"System Time: {currentTime}. Live Weather Report: {weatherReport.Trim()}";
         }
         catch (Exception ex)
@@ -32,12 +31,14 @@ public static class AgentTools
     {
         var agent = sp.GetRequiredKeyedService<AIAgent>("EmailAgent");
         var manager = sp.GetRequiredService<AgentSessionManager>();
-        string sessionKey = $"{threadId}_email";
+        var sessionKey = $"{threadId}_email";
+
         if (!manager.Sessions.TryGetValue(sessionKey, out var session))
         {
             session = await agent.CreateSessionAsync();
             manager.Sessions[sessionKey] = session;
         }
+
         var result = await agent.RunAsync(emailBody, session);
         return result.Text ?? "No dates found.";
     }
@@ -47,12 +48,14 @@ public static class AgentTools
     {
         var agent = sp.GetRequiredKeyedService<AIAgent>("CalendarAgent");
         var manager = sp.GetRequiredService<AgentSessionManager>();
-        string sessionKey = $"{threadId}_cal";
+        var sessionKey = $"{threadId}_cal";
+
         if (!manager.Sessions.TryGetValue(sessionKey, out var session))
         {
             session = await agent.CreateSessionAsync();
             manager.Sessions[sessionKey] = session;
         }
+
         var result = await agent.RunAsync($"Schedule: {eventDetails}", session);
         return result.Text ?? "Event scheduled.";
     }
@@ -63,7 +66,7 @@ public static class AgentTools
         try
         {
             using var pdf = PdfDocument.Open(filePath);
-            var text = string.Join("\n", pdf.GetPages().Select(p => p.Text));
+            var text = string.Join("\n", pdf.GetPages().Select(page => page.Text));
             return string.IsNullOrWhiteSpace(text) ? "The PDF is empty." : text;
         }
         catch (Exception ex)
@@ -133,10 +136,10 @@ public static class AgentTools
             new EmailSyncRequest(
                 Math.Clamp(maxResults, 1, 50),
                 query,
-                IncludeSpamTrash: true,
-                ApplyLocalLabels: applyLabels,
-                AddEventsToLocalCalendar: addEventsToCalendar,
-                ForceReprocess: false));
+                true,
+                applyLabels,
+                addEventsToCalendar,
+                false));
 
         var builder = new StringBuilder();
         builder.AppendLine($"Processed: {summary.ProcessedCount}");
@@ -188,6 +191,7 @@ public static class AgentTools
             $"Sample directory exists: {Directory.Exists(directory)}",
             $"Sample directory: {directory}"
         };
+
         return Task.FromResult(string.Join("\n", lines));
     }
 
@@ -197,20 +201,20 @@ public static class AgentTools
         using var scope = sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        if (DateTime.TryParse(dateStr, out DateTime parsedDate))
+        if (DateTime.TryParse(dateStr, out var parsedDate))
         {
-            var newEvent = new CalendarEvent 
-            { 
-                Title = title, 
-                EventDate = parsedDate, 
-                Description = description 
+            var newEvent = new CalendarEvent
+            {
+                Title = title,
+                EventDate = parsedDate,
+                Description = description
             };
-        
+
             db.Events.Add(newEvent);
             await db.SaveChangesAsync();
             return $"Successfully added '{title}' to your calendar for {parsedDate:MMMM dd, yyyy}.";
         }
-    
+
         return "I couldn't parse that date. Please tell me the date in a clearer format (e.g., YYYY-MM-DD).";
     }
 }
