@@ -4,10 +4,15 @@ using Microsoft.Extensions.FileProviders;
 using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using ModelContextProtocol.Client;
+using ModelContextProtocol.Server;
 using OpenAI;
 using System.ClientModel;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options => options.AddDefaultPolicy(p => 
+    p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -15,24 +20,61 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=NewAgentDB.db"));
 
 builder.Services.AddSingleton<AgentSessionManager>();
+builder.Services.Configure<ChatModelOptions>(builder.Configuration.GetSection("Chat"));
+builder.Services.Configure<EmbeddingModelOptions>(builder.Configuration.GetSection("Embeddings"));
+builder.Services.Configure<GoogleWorkspaceOptions>(builder.Configuration.GetSection("Google"));
+builder.Services.Configure<EmailProcessingOptions>(builder.Configuration.GetSection("EmailProcessing"));
 
 builder.Services.AddScoped<IChatClient>(sp =>
 {
-        var options = new OpenAIClientOptions()
-        {
-            Endpoint = new Uri(builder.Configuration["Chat:Endpoint"])
-        };
-    var model = builder.Configuration["Chat:Model"];
+    var settings = sp.GetRequiredService<IOptions<ChatModelOptions>>().Value;
+    var options = new OpenAIClientOptions
+    {
+        Endpoint = new Uri(settings.Endpoint)
+    };
 
-    IChatClient openAiClient = new OpenAIClient(new ApiKeyCredential("test123"), options).GetChatClient(model).AsIChatClient();
+    var apiKey = string.IsNullOrWhiteSpace(settings.ApiKey) ? "test123" : settings.ApiKey;
+    var model = settings.Model;
+
+    IChatClient openAiClient = new OpenAIClient(new ApiKeyCredential(apiKey), options)
+        .GetChatClient(model)
+        .AsIChatClient();
     return openAiClient;
 });
+
+builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<EmbeddingModelOptions>>().Value;
+    var options = new OpenAIClientOptions
+    {
+        Endpoint = new Uri(settings.Endpoint)
+    };
+
+    var apiKey = string.IsNullOrWhiteSpace(settings.ApiKey) ? "test123" : settings.ApiKey;
+    var client = new OpenAIClient(new ApiKeyCredential(apiKey), options);
+    return client.GetEmbeddingClient(settings.Model).AsIEmbeddingGenerator(settings.Dimensions);
+});
+
+builder.Services.AddSingleton<GoogleWorkspaceService>();
+builder.Services.AddScoped<GmailMailboxService>();
+builder.Services.AddScoped<StructuredAgentRunner>();
+builder.Services.AddScoped<EmailClassificationAgent>();
+builder.Services.AddScoped<EmailSummaryAgent>();
+builder.Services.AddScoped<EmailEventExtractionAgent>();
+builder.Services.AddScoped<CalendarValidationAgent>();
+builder.Services.AddScoped<EmailMemoryService>();
+builder.Services.AddScoped<EmailManagerAgentService>();
+
+builder.Services.AddMcpServer()
+    .WithHttpTransport(options => options.Stateless = true)
+    .WithTools<EmailMcpTools>();
 
 builder.Services.AddAlfredAgent();
 builder.Services.AddEmailAgent();
 builder.Services.AddCalendarAgent();
 
 var app = builder.Build();
+app.UseCors();
 
 // Static Files Configuration
 var frontendPath = Path.Combine(builder.Environment.ContentRootPath, "frontend");
@@ -48,10 +90,12 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     // EnsureCreated checks for the models defined in your Database.cs
     dbContext.Database.EnsureCreated();
+    await EnsureEmailTablesAsync(dbContext);
 }
 
 app.MapOpenApi();
 app.MapScalarApiReference(options => options.WithTheme(ScalarTheme.DeepSpace));
+app.MapMcp();
 
 // Main Chat Logic
 app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbContext db, AgentSessionManager manager, ILogger<Program> logger) =>
@@ -59,15 +103,13 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
     try
     {
         string threadId = request.ThreadId ?? Guid.NewGuid().ToString("N");
-        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        string downloadsPath = Path.Combine(userProfile, "Downloads");
+        string userRoot = Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
 
         
         var transport = new StdioClientTransport(new StdioClientTransportOptions
         {
             Command = "npx",
-            Arguments = ["-y", "@modelcontextprotocol/server-filesystem", desktopPath, downloadsPath]
+            Arguments = ["-y", "@modelcontextprotocol/server-filesystem", userRoot]
         });
 
         await using var mcpClient = await McpClient.CreateAsync(transport);
@@ -96,6 +138,9 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
             AIFunctionFactory.Create(AgentTools.ReadPdf),
             AIFunctionFactory.Create(AgentTools.ReadWord),
             AIFunctionFactory.Create(AgentTools.ReadRecentEmails),
+            AIFunctionFactory.Create(AgentTools.SyncAndOrganizeRecentEmails),
+            AIFunctionFactory.Create(AgentTools.SearchOrganizedEmails),
+            AIFunctionFactory.Create(AgentTools.GetGmailConnectionStatus),
             AIFunctionFactory.Create(AgentTools.AddToCalendar),
         };
 
@@ -142,8 +187,136 @@ app.MapDelete("/events/{id}", async (int id, AppDbContext db) => {
     return Results.Ok();
 });
 
+app.MapGet("/gmail/status", async (GoogleWorkspaceService googleWorkspace, CancellationToken cancellationToken) =>
+    Results.Ok(await googleWorkspace.GetDetailedStatusAsync(cancellationToken)));
+
+app.MapPost("/email/process", async (EmailProcessRequest request, EmailManagerAgentService manager, IOptions<EmailProcessingOptions> options, CancellationToken cancellationToken) =>
+{
+    var defaults = options.Value;
+    var syncRequest = new EmailSyncRequest(
+        request.MaxResults ?? defaults.DefaultSyncCount,
+        request.Query ?? defaults.DefaultQuery,
+        request.IncludeSpamTrash ?? true,
+        request.ApplyGmailLabels ?? defaults.ApplyGmailLabelsByDefault,
+        request.AddEventsToLocalCalendar ?? defaults.AddEventsToLocalCalendarByDefault,
+        request.AddEventsToGoogleCalendar ?? defaults.AddEventsToGoogleCalendarByDefault,
+        request.ForceReprocess);
+
+    var summary = await manager.ProcessInboxAsync(syncRequest, cancellationToken);
+    return Results.Ok(summary);
+});
+
+app.MapGet("/emails", async (AppDbContext db, string? category, int? limit, CancellationToken cancellationToken) =>
+{
+    var query = db.ProcessedEmails
+        .AsNoTracking()
+        .Include(email => email.CalendarSuggestions)
+        .OrderByDescending(email => email.ReceivedAtUtc)
+        .AsQueryable();
+
+    if (!string.IsNullOrWhiteSpace(category))
+    {
+        query = query.Where(email => email.Category == category);
+    }
+
+    var take = Math.Clamp(limit ?? 50, 1, 200);
+    var emails = await query
+        .Take(take)
+        .Select(email => new
+        {
+            email.Id,
+            email.Subject,
+            email.FromAddress,
+            email.Category,
+            email.Summary,
+            email.ReceivedAtUtc,
+            email.LabelsApplied,
+            CalendarSuggestionCount = email.CalendarSuggestions.Count
+        })
+        .ToListAsync(cancellationToken);
+
+    return Results.Ok(emails);
+});
+
+app.MapGet("/emails/{id:int}", async (int id, AppDbContext db, CancellationToken cancellationToken) =>
+{
+    var email = await db.ProcessedEmails
+        .AsNoTracking()
+        .Include(item => item.CalendarSuggestions)
+        .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+
+    return email is null ? Results.NotFound() : Results.Ok(email);
+});
+
+app.MapGet("/emails/search", async (string query, int? top, EmailManagerAgentService manager, CancellationToken cancellationToken) =>
+    Results.Ok(await manager.SearchInboxMemoryAsync(query, Math.Clamp(top ?? 5, 1, 10), cancellationToken)));
+
+app.MapPost("/emails/{id:int}/events", async (int id, bool googleCalendar, EmailManagerAgentService manager, CancellationToken cancellationToken) =>
+    Results.Ok(await manager.AddEventsForEmailAsync(id, googleCalendar, cancellationToken)));
+
+static async Task EnsureEmailTablesAsync(AppDbContext dbContext)
+{
+    await dbContext.Database.ExecuteSqlRawAsync(
+        """
+        CREATE TABLE IF NOT EXISTS ProcessedEmails (
+            Id INTEGER NOT NULL CONSTRAINT PK_ProcessedEmails PRIMARY KEY AUTOINCREMENT,
+            GmailMessageId TEXT NOT NULL,
+            GmailThreadId TEXT NOT NULL,
+            InternetMessageId TEXT NOT NULL,
+            FromAddress TEXT NOT NULL,
+            Subject TEXT NOT NULL,
+            Snippet TEXT NOT NULL,
+            PlainTextBody TEXT NOT NULL,
+            Summary TEXT NOT NULL,
+            ActionItemsJson TEXT NOT NULL,
+            Category TEXT NOT NULL,
+            ClassificationReasoning TEXT NOT NULL,
+            GmailLabelIdsJson TEXT NOT NULL,
+            EmbeddingJson TEXT NOT NULL,
+            ReceivedAtUtc TEXT NOT NULL,
+            ProcessedAtUtc TEXT NOT NULL,
+            LabelsApplied INTEGER NOT NULL,
+            HasCalendarSuggestions INTEGER NOT NULL
+        );
+        """);
+
+    await dbContext.Database.ExecuteSqlRawAsync(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS IX_ProcessedEmails_GmailMessageId
+        ON ProcessedEmails (GmailMessageId);
+        """);
+
+    await dbContext.Database.ExecuteSqlRawAsync(
+        """
+        CREATE TABLE IF NOT EXISTS EmailCalendarSuggestions (
+            Id INTEGER NOT NULL CONSTRAINT PK_EmailCalendarSuggestions PRIMARY KEY AUTOINCREMENT,
+            ProcessedEmailId INTEGER NOT NULL,
+            Title TEXT NOT NULL,
+            Description TEXT NOT NULL,
+            RawDateText TEXT NOT NULL,
+            RawStartTimeText TEXT NOT NULL,
+            RawEndTimeText TEXT NOT NULL,
+            IsAllDay INTEGER NOT NULL,
+            StartUtc TEXT NULL,
+            EndUtc TEXT NULL,
+            Confidence REAL NOT NULL,
+            AddedToLocalCalendar INTEGER NOT NULL,
+            AddedToGoogleCalendar INTEGER NOT NULL,
+            FOREIGN KEY (ProcessedEmailId) REFERENCES ProcessedEmails (Id) ON DELETE CASCADE
+        );
+        """);
+}
+
 app.Run();
 
 // API Records
 public record ChatRequest(string Message, string? ThreadId = null);
 public record ChatResponse(string Response, string ThreadId);
+public record EmailProcessRequest(
+    int? MaxResults = null,
+    string? Query = null,
+    bool? IncludeSpamTrash = null,
+    bool? ApplyGmailLabels = null,
+    bool? AddEventsToLocalCalendar = null,
+    bool? AddEventsToGoogleCalendar = null,
+    bool ForceReprocess = false);

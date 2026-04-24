@@ -1,11 +1,10 @@
 using System.ComponentModel;
+using System.Text;
 using Microsoft.Agents.AI;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using UglyToad.PdfPig;
 using DocumentFormat.OpenXml.Packaging;
-using MailKit.Net.Imap;
-using MailKit.Search;
-using MailKit;
 
 public static class AgentTools
 {
@@ -79,7 +78,7 @@ public static class AgentTools
         try
         {
             using var doc = WordprocessingDocument.Open(filePath, false);
-            var body = doc.MainDocumentPart?.Document.Body;
+            var body = doc.MainDocumentPart?.Document?.Body;
             return body?.InnerText ?? "The Word document is empty or unreadable.";
         }
         catch (Exception ex)
@@ -88,45 +87,122 @@ public static class AgentTools
         }
     }
 
-    [Description("Connects to the user's inbox via IMAP to read the 5 most recent emails.")]
-    public static async Task<string> ReadRecentEmails()
+    [Description("Reads recent Gmail messages using the configured Google OAuth desktop credentials.")]
+    public static async Task<string> ReadRecentEmails(int maxResults, string? query, IServiceProvider sp)
     {
-        // Replace with your info or pull from AppSettings
-        string email = "keithmills4444@gmail.com"; 
-        string appPassword = "uhsstirksoiplnmh"; 
+        var gmailMailbox = sp.GetRequiredService<GmailMailboxService>();
+        var messages = await gmailMailbox.GetRecentMessagesAsync(
+            Math.Clamp(maxResults, 1, 25),
+            query,
+            includeSpamTrash: true);
 
-        try
+        if (messages.Count == 0)
         {
-            using var client = new ImapClient();
-            // Use imap.gmail.com for Gmail or outlook.office365.com for Outlook/LSU
-            await client.ConnectAsync("imap.gmail.com", 993, true); 
-            await client.AuthenticateAsync(email, appPassword);
+            return "No Gmail messages were found for that query.";
+        }
 
-            var inbox = client.Inbox;
-            await inbox.OpenAsync(FolderAccess.ReadOnly);
+        var builder = new StringBuilder();
+        foreach (var message in messages)
+        {
+            var preview = message.PlainTextBody.Length > 240
+                ? $"{message.PlainTextBody[..240]}..."
+                : message.PlainTextBody;
 
-            var results = new List<string>();
-            int count = inbox.Count;
-            int start = Math.Max(0, count - 5);
+            builder.AppendLine($"From: {message.FromAddress}");
+            builder.AppendLine($"Subject: {message.Subject}");
+            builder.AppendLine($"Received (UTC): {message.ReceivedAtUtc:yyyy-MM-dd HH:mm}");
+            builder.AppendLine($"Preview: {preview}");
+            builder.AppendLine();
+            builder.AppendLine("---");
+            builder.AppendLine();
+        }
 
-            for (int i = count - 1; i >= start; i--)
+        return builder.ToString().Trim();
+    }
+
+    [Description("Runs the inbox manager workflow: read recent Gmail messages, classify them, summarize them, and add valid dates to the calendar.")]
+    public static async Task<string> SyncAndOrganizeRecentEmails(
+        int maxResults,
+        string? query,
+        bool applyLabels,
+        bool addEventsToCalendar,
+        bool addEventsToGoogleCalendar,
+        IServiceProvider sp)
+    {
+        var manager = sp.GetRequiredService<EmailManagerAgentService>();
+        var summary = await manager.ProcessInboxAsync(
+            new EmailSyncRequest(
+                Math.Clamp(maxResults, 1, 50),
+                query,
+                IncludeSpamTrash: true,
+                ApplyGmailLabels: applyLabels,
+                AddEventsToLocalCalendar: addEventsToCalendar,
+                AddEventsToGoogleCalendar: addEventsToGoogleCalendar,
+                ForceReprocess: false));
+
+        var builder = new StringBuilder();
+        builder.AppendLine($"Processed: {summary.ProcessedCount}");
+        builder.AppendLine($"Skipped (already indexed): {summary.SkippedCount}");
+        builder.AppendLine($"Important: {summary.ImportantCount}");
+        builder.AppendLine($"Promotions: {summary.PromotionsCount}");
+        builder.AppendLine($"Spam: {summary.SpamCount}");
+        builder.AppendLine($"Local calendar additions: {summary.EmailsWithLocalCalendarEvents}");
+        builder.AppendLine($"Google Calendar additions: {summary.EmailsWithGoogleCalendarEvents}");
+
+        foreach (var email in summary.Results.Where(result => !result.WasSkipped).Take(5))
+        {
+            builder.AppendLine();
+            builder.AppendLine($"Subject: {email.Subject}");
+            builder.AppendLine($"Category: {email.Category}");
+            builder.AppendLine($"Summary: {email.Summary}");
+            if (email.ActionItems.Count > 0)
             {
-                var message = await inbox.GetMessageAsync(i);
-
-                string body = message.TextBody ?? "No content";
-                string safeSnippet = body.Length > 300 ? body[..300] : body;
-
-                results.Add($"From: {message.From}\nSubject: {message.Subject}\nContent: {safeSnippet}");
+                builder.AppendLine($"Action items: {string.Join("; ", email.ActionItems)}");
             }
+        }
 
-            await client.DisconnectAsync(true);
-            return string.Join("\n\n---\n\n", results);
-        }
-        catch (Exception ex)
+        return builder.ToString().Trim();
+    }
+
+    [Description("Searches processed email summaries and embeddings using the local RAG index.")]
+    public static async Task<string> SearchOrganizedEmails(string query, int top, IServiceProvider sp)
+    {
+        var manager = sp.GetRequiredService<EmailManagerAgentService>();
+        var results = await manager.SearchInboxMemoryAsync(query, Math.Clamp(top, 1, 10));
+
+        if (results.Count == 0)
         {
-            Console.WriteLine($"[GMAIL DEBUG ERROR]: {ex.Message}");
-            return $"I was able to connect to the inbox, but I encountered a technical issue reading the message content. Please try again or check the terminal logs.";
+            return "No matching processed emails were found.";
         }
+
+        return string.Join(
+            "\n\n",
+            results.Select(result =>
+                $"[{result.Category}] {result.Subject}\nSimilarity: {result.Score:F2}\nSummary: {result.Summary}"));
+    }
+
+    [Description("Shows whether Gmail and Google Calendar OAuth credentials are configured correctly.")]
+    public static async Task<string> GetGmailConnectionStatus(IServiceProvider sp)
+    {
+        var googleWorkspace = sp.GetRequiredService<GoogleWorkspaceService>();
+        var status = await googleWorkspace.GetDetailedStatusAsync();
+
+        var lines = new List<string>
+        {
+            $"Credentials file found: {status.CredentialsFileFound}",
+            $"Token directory exists: {status.TokenDirectoryExists}",
+            $"Credentials path: {status.CredentialsPath}",
+            $"Token directory: {status.TokenDirectory}",
+            $"Google Calendar sync enabled: {status.GoogleCalendarWriteEnabled}",
+            $"Calendar ID: {status.CalendarId}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(status.AuthenticatedEmail))
+        {
+            lines.Add($"Authenticated email: {status.AuthenticatedEmail}");
+        }
+
+        return string.Join("\n", lines);
     }
 
     [Description("Saves a new event to the user's personal calendar database.")]

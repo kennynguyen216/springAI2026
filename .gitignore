@@ -1,0 +1,4 @@
+secrets/google-oauth-client.json
+.tokens/
+*.db-shm
+*.db-wal

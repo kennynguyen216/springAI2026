@@ -9,11 +9,11 @@ public static class EmailAgent
             var chatClient = sp.GetRequiredService<IChatClient>();
             return new ChatClientAgent(
                 chatClient,
-                instructions: @"You are the Email Specialist Agent. Your sole purpose is to receive raw email text and extract actionable event information.
-                                1. Identify the 'Event Title', 'Date', 'Start Time', and 'End Time'.
-                                2. If information is missing, note that it is missing.
-                                3. Do not engage in small talk. Output only extracted details.
-                                4. If no events are found, state: 'No event details detected.'",
+                instructions: @"You are the Email Specialist Agent.
+                                1. Read raw email content and focus on dates, deadlines, action items, and schedule details.
+                                2. Extract only what is explicitly supported by the message.
+                                3. If no events are present, say: 'No event details detected.'
+                                4. Do not engage in small talk.",
                 name: "EmailAgent");
         });
     }

@@ -47,6 +47,107 @@
           }
         }
       },
+      "Google.Apis/1.73.0": {
+        "type": "package",
+        "dependencies": {
+          "Google.Apis.Core": "1.73.0"
+        },
+        "compile": {
+          "lib/net6.0/Google.Apis.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
+      "Google.Apis.Auth/1.73.0": {
+        "type": "package",
+        "dependencies": {
+          "Google.Apis": "1.73.0",
+          "Google.Apis.Core": "1.73.0",
+          "System.Management": "7.0.2"
+        },
+        "compile": {
+          "lib/net6.0/Google.Apis.Auth.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.Auth.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
+      "Google.Apis.Calendar.v3/1.73.0.4073": {
+        "type": "package",
+        "dependencies": {
+          "Google.Apis": "1.73.0",
+          "Google.Apis.Auth": "1.73.0"
+        },
+        "compile": {
+          "lib/net6.0/Google.Apis.Calendar.v3.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.Calendar.v3.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
+      "Google.Apis.Core/1.73.0": {
+        "type": "package",
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.4"
+        },
+        "compile": {
+          "lib/net6.0/Google.Apis.Core.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.Core.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
+      "Google.Apis.Gmail.v1/1.73.0.4029": {
+        "type": "package",
+        "dependencies": {
+          "Google.Apis": "1.73.0",
+          "Google.Apis.Auth": "1.73.0"
+        },
+        "compile": {
+          "lib/net6.0/Google.Apis.Gmail.v1.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.Gmail.v1.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
+      "Google.Apis.Oauth2.v2/1.68.0.1869": {
+        "type": "package",
+        "dependencies": {
+          "Google.Apis": "1.68.0",
+          "Google.Apis.Auth": "1.68.0"
+        },
+        "compile": {
+          "lib/net6.0/Google.Apis.Oauth2.v2.dll": {
+            "related": ".pdb;.xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Google.Apis.Oauth2.v2.dll": {
+            "related": ".pdb;.xml"
+          }
+        }
+      },
       "Google.Protobuf/3.30.2": {
         "type": "package",
         "compile": {
@@ -820,6 +921,25 @@
           }
         }
       },
+      "ModelContextProtocol.AspNetCore/1.2.0": {
+        "type": "package",
+        "dependencies": {
+          "ModelContextProtocol": "1.2.0"
+        },
+        "compile": {
+          "lib/net10.0/ModelContextProtocol.AspNetCore.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net10.0/ModelContextProtocol.AspNetCore.dll": {
+            "related": ".xml"
+          }
+        },
+        "frameworkReferences": [
+          "Microsoft.AspNetCore.App"
+        ]
+      },
       "ModelContextProtocol.Core/1.2.0": {
         "type": "package",
         "dependencies": {
@@ -851,10 +971,10 @@
           "buildTransitive/Mono.TextTemplating.targets": {}
         }
       },
-      "Newtonsoft.Json/13.0.3": {
+      "Newtonsoft.Json/13.0.4": {
         "type": "package",
         "compile": {
-          "lib/net6.0/_._": {
+          "lib/net6.0/Newtonsoft.Json.dll": {
             "related": ".xml"
           }
         },
@@ -1074,20 +1194,20 @@
           "buildTransitive/net10.0/System.ClientModel.targets": {}
         }
       },
-      "System.CodeDom/6.0.0": {
+      "System.CodeDom/7.0.0": {
         "type": "package",
         "compile": {
-          "lib/net6.0/_._": {
+          "lib/net7.0/System.CodeDom.dll": {
             "related": ".xml"
           }
         },
         "runtime": {
-          "lib/net6.0/System.CodeDom.dll": {
+          "lib/net7.0/System.CodeDom.dll": {
             "related": ".xml"
           }
         },
         "build": {
-          "buildTransitive/netcoreapp3.1/_._": {}
+          "buildTransitive/net6.0/_._": {}
         }
       },
       "System.Composition/9.0.0": {
@@ -1214,6 +1334,31 @@
         },
         "build": {
           "buildTransitive/net8.0/_._": {}
+        }
+      },
+      "System.Management/7.0.2": {
+        "type": "package",
+        "dependencies": {
+          "System.CodeDom": "7.0.0"
+        },
+        "compile": {
+          "lib/net7.0/System.Management.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net7.0/System.Management.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "buildTransitive/net6.0/_._": {}
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/net7.0/System.Management.dll": {
+            "assetType": "runtime",
+            "rid": "win"
+          }
         }
       },
       "System.Memory.Data/10.0.3": {
@@ -1433,6 +1578,138 @@
         "lib/net8.0/DocumentFormat.OpenXml.Framework.xml",
         "lib/netstandard2.0/DocumentFormat.OpenXml.Framework.dll",
         "lib/netstandard2.0/DocumentFormat.OpenXml.Framework.xml"
+      ]
+    },
+    "Google.Apis/1.73.0": {
+      "sha512": "TnCjEyV2aCLQ6Zl40OCbEJULDuEkEWc6C/g81KYw5l1PqGo+G7pFZrV+YH8XgUL0JRUanz+IrUp8SsKF4dzkqg==",
+      "type": "package",
+      "path": "google.apis/1.73.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "NuGetIcon.png",
+        "google.apis.1.73.0.nupkg.sha512",
+        "google.apis.nuspec",
+        "lib/net462/Google.Apis.dll",
+        "lib/net462/Google.Apis.pdb",
+        "lib/net462/Google.Apis.xml",
+        "lib/net6.0/Google.Apis.dll",
+        "lib/net6.0/Google.Apis.pdb",
+        "lib/net6.0/Google.Apis.xml",
+        "lib/netstandard2.0/Google.Apis.dll",
+        "lib/netstandard2.0/Google.Apis.pdb",
+        "lib/netstandard2.0/Google.Apis.xml"
+      ]
+    },
+    "Google.Apis.Auth/1.73.0": {
+      "sha512": "wEu12uhnRv3zrPBSqv4E2vPH6lYLtc1RPAnU9MJRCMFlBVwZ7Lnq3NfbYXi6VG7EurkYInTaMpeBZkbM/HrAog==",
+      "type": "package",
+      "path": "google.apis.auth/1.73.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "NuGetIcon.png",
+        "google.apis.auth.1.73.0.nupkg.sha512",
+        "google.apis.auth.nuspec",
+        "lib/net462/Google.Apis.Auth.dll",
+        "lib/net462/Google.Apis.Auth.pdb",
+        "lib/net462/Google.Apis.Auth.xml",
+        "lib/net6.0/Google.Apis.Auth.dll",
+        "lib/net6.0/Google.Apis.Auth.pdb",
+        "lib/net6.0/Google.Apis.Auth.xml",
+        "lib/netstandard2.0/Google.Apis.Auth.dll",
+        "lib/netstandard2.0/Google.Apis.Auth.pdb",
+        "lib/netstandard2.0/Google.Apis.Auth.xml"
+      ]
+    },
+    "Google.Apis.Calendar.v3/1.73.0.4073": {
+      "sha512": "U/wVeNupBm2v8wB6/XFe7htfouPgyrJ25o7T1eAniXyiKAApZowgq1DT1ArY0l4Qaf59UFtcgB9/t5jw/NpVHg==",
+      "type": "package",
+      "path": "google.apis.calendar.v3/1.73.0.4073",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "NuGetIcon.png",
+        "google.apis.calendar.v3.1.73.0.4073.nupkg.sha512",
+        "google.apis.calendar.v3.nuspec",
+        "lib/net462/Google.Apis.Calendar.v3.dll",
+        "lib/net462/Google.Apis.Calendar.v3.pdb",
+        "lib/net462/Google.Apis.Calendar.v3.xml",
+        "lib/net6.0/Google.Apis.Calendar.v3.dll",
+        "lib/net6.0/Google.Apis.Calendar.v3.pdb",
+        "lib/net6.0/Google.Apis.Calendar.v3.xml",
+        "lib/netstandard2.0/Google.Apis.Calendar.v3.dll",
+        "lib/netstandard2.0/Google.Apis.Calendar.v3.pdb",
+        "lib/netstandard2.0/Google.Apis.Calendar.v3.xml"
+      ]
+    },
+    "Google.Apis.Core/1.73.0": {
+      "sha512": "vSc7CY4KCP7HE4QTElDx/ExnGLbg9kXb89MS6cdvI+0D4sxvTYb16vGtXmF2jSDMV3iDmykSXdIUPTz8TDS6gg==",
+      "type": "package",
+      "path": "google.apis.core/1.73.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "NuGetIcon.png",
+        "google.apis.core.1.73.0.nupkg.sha512",
+        "google.apis.core.nuspec",
+        "lib/net462/Google.Apis.Core.dll",
+        "lib/net462/Google.Apis.Core.pdb",
+        "lib/net462/Google.Apis.Core.xml",
+        "lib/net6.0/Google.Apis.Core.dll",
+        "lib/net6.0/Google.Apis.Core.pdb",
+        "lib/net6.0/Google.Apis.Core.xml",
+        "lib/netstandard2.0/Google.Apis.Core.dll",
+        "lib/netstandard2.0/Google.Apis.Core.pdb",
+        "lib/netstandard2.0/Google.Apis.Core.xml"
+      ]
+    },
+    "Google.Apis.Gmail.v1/1.73.0.4029": {
+      "sha512": "xD94zsuXNPvUaZXqLwSe27JQlv/asK2pCAPD0DTCBMaAfZA+4TR4DwVCQ01P5DQ55bGey5tbcIzrDKVjG5WI8g==",
+      "type": "package",
+      "path": "google.apis.gmail.v1/1.73.0.4029",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "NuGetIcon.png",
+        "google.apis.gmail.v1.1.73.0.4029.nupkg.sha512",
+        "google.apis.gmail.v1.nuspec",
+        "lib/net462/Google.Apis.Gmail.v1.dll",
+        "lib/net462/Google.Apis.Gmail.v1.pdb",
+        "lib/net462/Google.Apis.Gmail.v1.xml",
+        "lib/net6.0/Google.Apis.Gmail.v1.dll",
+        "lib/net6.0/Google.Apis.Gmail.v1.pdb",
+        "lib/net6.0/Google.Apis.Gmail.v1.xml",
+        "lib/netstandard2.0/Google.Apis.Gmail.v1.dll",
+        "lib/netstandard2.0/Google.Apis.Gmail.v1.pdb",
+        "lib/netstandard2.0/Google.Apis.Gmail.v1.xml"
+      ]
+    },
+    "Google.Apis.Oauth2.v2/1.68.0.1869": {
+      "sha512": "6gf5dpi6d+sezfRwqEfA9lDfP7OT5ZrQFgiO1r2jDS8rkMpxaS6/mpTsyW/EgcXr8R4NEHIbAN4FvZClRq0+Zg==",
+      "type": "package",
+      "path": "google.apis.oauth2.v2/1.68.0.1869",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "NuGetIcon.png",
+        "google.apis.oauth2.v2.1.68.0.1869.nupkg.sha512",
+        "google.apis.oauth2.v2.nuspec",
+        "lib/net462/Google.Apis.Oauth2.v2.dll",
+        "lib/net462/Google.Apis.Oauth2.v2.pdb",
+        "lib/net462/Google.Apis.Oauth2.v2.xml",
+        "lib/net6.0/Google.Apis.Oauth2.v2.dll",
+        "lib/net6.0/Google.Apis.Oauth2.v2.pdb",
+        "lib/net6.0/Google.Apis.Oauth2.v2.xml",
+        "lib/netstandard2.0/Google.Apis.Oauth2.v2.dll",
+        "lib/netstandard2.0/Google.Apis.Oauth2.v2.pdb",
+        "lib/netstandard2.0/Google.Apis.Oauth2.v2.xml"
       ]
     },
     "Google.Protobuf/3.30.2": {
@@ -3135,6 +3412,25 @@
         "modelcontextprotocol.nuspec"
       ]
     },
+    "ModelContextProtocol.AspNetCore/1.2.0": {
+      "sha512": "tVDFKdRCcVz7YTApJ8SV2K5Tt3nor6RcnEkjSbC0X9y3qtp6BCYubRWJcd2ByZ+jIbJG8P34UOaIEbWyVQSLMw==",
+      "type": "package",
+      "path": "modelcontextprotocol.aspnetcore/1.2.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "lib/net10.0/ModelContextProtocol.AspNetCore.dll",
+        "lib/net10.0/ModelContextProtocol.AspNetCore.xml",
+        "lib/net8.0/ModelContextProtocol.AspNetCore.dll",
+        "lib/net8.0/ModelContextProtocol.AspNetCore.xml",
+        "lib/net9.0/ModelContextProtocol.AspNetCore.dll",
+        "lib/net9.0/ModelContextProtocol.AspNetCore.xml",
+        "logo.png",
+        "modelcontextprotocol.aspnetcore.1.2.0.nupkg.sha512",
+        "modelcontextprotocol.aspnetcore.nuspec"
+      ]
+    },
     "ModelContextProtocol.Core/1.2.0": {
       "sha512": "x0eQqFKtV30nWP6yVy0d/3RnAKwM14ay1CHnUNb7EpwZEXJJJqjPENYvpzwqi8+8LNMMK/g33WnnLYIf1JGMOg==",
       "type": "package",
@@ -3174,10 +3470,10 @@
         "readme.md"
       ]
     },
-    "Newtonsoft.Json/13.0.3": {
-      "sha512": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ==",
+    "Newtonsoft.Json/13.0.4": {
+      "sha512": "pdgNNMai3zv51W5aq268sujXUyx7SNdE2bj1wZcWjAQrKMFZV260lbqYop1d2GM67JI1huLRwxo9ZqnfF/lC6A==",
       "type": "package",
-      "path": "newtonsoft.json/13.0.3",
+      "path": "newtonsoft.json/13.0.4",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -3199,7 +3495,7 @@
         "lib/netstandard1.3/Newtonsoft.Json.xml",
         "lib/netstandard2.0/Newtonsoft.Json.dll",
         "lib/netstandard2.0/Newtonsoft.Json.xml",
-        "newtonsoft.json.13.0.3.nupkg.sha512",
+        "newtonsoft.json.13.0.4.nupkg.sha512",
         "newtonsoft.json.nuspec",
         "packageIcon.png"
       ]
@@ -3392,25 +3688,29 @@
         "system.clientmodel.nuspec"
       ]
     },
-    "System.CodeDom/6.0.0": {
-      "sha512": "CPc6tWO1LAer3IzfZufDBRL+UZQcj5uS207NHALQzP84Vp/z6wF0Aa0YZImOQY8iStY0A2zI/e3ihKNPfUm8XA==",
+    "System.CodeDom/7.0.0": {
+      "sha512": "GLltyqEsE5/3IE+zYRP5sNa1l44qKl9v+bfdMcwg+M9qnQf47wK3H0SUR/T+3N4JEQXF3vV4CSuuo0rsg+nq2A==",
       "type": "package",
-      "path": "system.codedom/6.0.0",
+      "path": "system.codedom/7.0.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "Icon.png",
         "LICENSE.TXT",
         "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/net461/System.CodeDom.targets",
+        "buildTransitive/net462/_._",
+        "buildTransitive/net6.0/_._",
         "buildTransitive/netcoreapp2.0/System.CodeDom.targets",
-        "buildTransitive/netcoreapp3.1/_._",
-        "lib/net461/System.CodeDom.dll",
-        "lib/net461/System.CodeDom.xml",
+        "lib/net462/System.CodeDom.dll",
+        "lib/net462/System.CodeDom.xml",
         "lib/net6.0/System.CodeDom.dll",
         "lib/net6.0/System.CodeDom.xml",
+        "lib/net7.0/System.CodeDom.dll",
+        "lib/net7.0/System.CodeDom.xml",
         "lib/netstandard2.0/System.CodeDom.dll",
         "lib/netstandard2.0/System.CodeDom.xml",
-        "system.codedom.6.0.0.nupkg.sha512",
+        "system.codedom.7.0.0.nupkg.sha512",
         "system.codedom.nuspec",
         "useSharedDesignerContext.txt"
       ]
@@ -3603,6 +3903,34 @@
         "lib/netstandard2.0/System.IO.Packaging.xml",
         "system.io.packaging.10.0.2.nupkg.sha512",
         "system.io.packaging.nuspec",
+        "useSharedDesignerContext.txt"
+      ]
+    },
+    "System.Management/7.0.2": {
+      "sha512": "/qEUN91mP/MUQmJnM5y5BdT7ZoPuVrtxnFlbJ8a3kBJGhe2wCzBfnPFtK2wTtEEcf3DMGR9J00GZZfg6HRI6yA==",
+      "type": "package",
+      "path": "system.management/7.0.2",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "LICENSE.TXT",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/net6.0/_._",
+        "buildTransitive/netcoreapp2.0/System.Management.targets",
+        "lib/net462/_._",
+        "lib/net6.0/System.Management.dll",
+        "lib/net6.0/System.Management.xml",
+        "lib/net7.0/System.Management.dll",
+        "lib/net7.0/System.Management.xml",
+        "lib/netstandard2.0/System.Management.dll",
+        "lib/netstandard2.0/System.Management.xml",
+        "runtimes/win/lib/net6.0/System.Management.dll",
+        "runtimes/win/lib/net6.0/System.Management.xml",
+        "runtimes/win/lib/net7.0/System.Management.dll",
+        "runtimes/win/lib/net7.0/System.Management.xml",
+        "system.management.7.0.2.nupkg.sha512",
+        "system.management.nuspec",
         "useSharedDesignerContext.txt"
       ]
     },
@@ -3848,6 +4176,10 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "DocumentFormat.OpenXml >= 3.5.1",
+      "Google.Apis.Auth >= 1.73.0",
+      "Google.Apis.Calendar.v3 >= 1.73.0.4073",
+      "Google.Apis.Gmail.v1 >= 1.73.0.4029",
+      "Google.Apis.Oauth2.v2 >= 1.68.0.1869",
       "MailKit >= 4.16.0",
       "Microsoft.Agents.AI >= 1.0.0-rc4",
       "Microsoft.AspNetCore.OpenApi >= 10.0.5",
@@ -3860,6 +4192,7 @@
       "Microsoft.Extensions.DependencyInjection >= 10.0.5",
       "Microsoft.Extensions.Hosting >= 10.0.5",
       "ModelContextProtocol >= 1.2.0",
+      "ModelContextProtocol.AspNetCore >= 1.2.0",
       "OllamaSharp >= 5.4.25",
       "OpenAI >= 2.10.0",
       "Scalar.AspNetCore >= 2.13.17",
@@ -3867,19 +4200,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\jhong14\\.nuget\\packages\\": {}
+    "/Users/jaydenhong/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\CARTS.csproj",
+      "projectUniqueName": "/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.csproj",
       "projectName": "CARTS",
-      "projectPath": "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\CARTS.csproj",
-      "packagesPath": "C:\\Users\\jhong14\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\obj\\",
+      "projectPath": "/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.csproj",
+      "packagesPath": "/Users/jaydenhong/.nuget/packages/",
+      "outputPath": "/Users/jaydenhong/Documents/GitHub/springAI2026/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\jhong14\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "/Users/jaydenhong/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
@@ -3903,7 +4236,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.100"
+      "SdkAnalysisLevel": "10.0.200"
     },
     "frameworks": {
       "net10.0": {
@@ -3912,6 +4245,22 @@
           "DocumentFormat.OpenXml": {
             "target": "Package",
             "version": "[3.5.1, )"
+          },
+          "Google.Apis.Auth": {
+            "target": "Package",
+            "version": "[1.73.0, )"
+          },
+          "Google.Apis.Calendar.v3": {
+            "target": "Package",
+            "version": "[1.73.0.4073, )"
+          },
+          "Google.Apis.Gmail.v1": {
+            "target": "Package",
+            "version": "[1.73.0.4029, )"
+          },
+          "Google.Apis.Oauth2.v2": {
+            "target": "Package",
+            "version": "[1.68.0.1869, )"
           },
           "MailKit": {
             "target": "Package",
@@ -3963,6 +4312,10 @@
             "target": "Package",
             "version": "[1.2.0, )"
           },
+          "ModelContextProtocol.AspNetCore": {
+            "target": "Package",
+            "version": "[1.2.0, )"
+          },
           "OllamaSharp": {
             "target": "Package",
             "version": "[5.4.25, )"
@@ -3999,7 +4352,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.203/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

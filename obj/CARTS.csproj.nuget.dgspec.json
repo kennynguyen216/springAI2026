@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\CARTS.csproj": {}
+    "/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.csproj": {}
   },
   "projects": {
-    "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\CARTS.csproj": {
+    "/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\CARTS.csproj",
+        "projectUniqueName": "/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.csproj",
         "projectName": "CARTS",
-        "projectPath": "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\CARTS.csproj",
-        "packagesPath": "C:\\Users\\jhong14\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\obj\\",
+        "projectPath": "/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.csproj",
+        "packagesPath": "/Users/jaydenhong/.nuget/packages/",
+        "outputPath": "/Users/jaydenhong/Documents/GitHub/springAI2026/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\jhong14\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/Users/jaydenhong/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -38,7 +38,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net10.0": {
@@ -47,6 +47,22 @@
             "DocumentFormat.OpenXml": {
               "target": "Package",
               "version": "[3.5.1, )"
+            },
+            "Google.Apis.Auth": {
+              "target": "Package",
+              "version": "[1.73.0, )"
+            },
+            "Google.Apis.Calendar.v3": {
+              "target": "Package",
+              "version": "[1.73.0.4073, )"
+            },
+            "Google.Apis.Gmail.v1": {
+              "target": "Package",
+              "version": "[1.73.0.4029, )"
+            },
+            "Google.Apis.Oauth2.v2": {
+              "target": "Package",
+              "version": "[1.68.0.1869, )"
             },
             "MailKit": {
               "target": "Package",
@@ -98,6 +114,10 @@
               "target": "Package",
               "version": "[1.2.0, )"
             },
+            "ModelContextProtocol.AspNetCore": {
+              "target": "Package",
+              "version": "[1.2.0, )"
+            },
             "OllamaSharp": {
               "target": "Package",
               "version": "[5.4.25, )"
@@ -134,7 +154,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.203/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

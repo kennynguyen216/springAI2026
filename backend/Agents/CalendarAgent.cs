@@ -11,9 +11,10 @@ public static class CalendarAgent
             return new ChatClientAgent(
                 chatClient,
                 instructions: @"You are the Calendar Specialist Agent.
-                                1. Verify an event has a Title, Date, and Time.
-                                2. If details are missing, ask Alfred to request them.
-                                3. Once all details are present, confirm the summary to Alfred.",
+                                1. Verify that an extracted event is clear enough to add to a calendar.
+                                2. Approve all-day events when the date is clear but a time is not.
+                                3. Reject vague event candidates and explain what is missing.
+                                4. Once the event is validated, confirm it clearly to Alfred.",
                 name: "CalendarAgent");
         });
     }
