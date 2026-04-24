@@ -3867,19 +3867,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\jhong14\\.nuget\\packages\\": {}
+    "C:\\Users\\kenne\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\CARTS.csproj",
+      "projectUniqueName": "C:\\Users\\kenne\\OneDrive\\Documents\\GitHub\\springAI2026\\CARTS.csproj",
       "projectName": "CARTS",
-      "projectPath": "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\CARTS.csproj",
-      "packagesPath": "C:\\Users\\jhong14\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\jhong14\\OneDrive - Louisiana State University\\Desktop\\CARTS\\obj\\",
+      "projectPath": "C:\\Users\\kenne\\OneDrive\\Documents\\GitHub\\springAI2026\\CARTS.csproj",
+      "packagesPath": "C:\\Users\\kenne\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\kenne\\OneDrive\\Documents\\GitHub\\springAI2026\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\jhong14\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\kenne\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
@@ -3903,7 +3903,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.100"
+      "SdkAnalysisLevel": "10.0.200"
     },
     "frameworks": {
       "net10.0": {
@@ -3999,7 +3999,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

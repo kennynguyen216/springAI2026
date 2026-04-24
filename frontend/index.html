@@ -38,8 +38,12 @@
             <section id="calendar-view" style="display: none;">
                 <div class="cal-header">
                     <button onclick="changeMonth(-1)" class="btn-cal-nav">PREV</button>
-                    <h2 id="month-label">Month Year</h2>
+                    <div class="cal-header-center">
+                        <h2 id="month-label">Month Year</h2>
+                        <select id="year-select" onchange="changeYear(this.value)"></select>
+                    </div>
                     <button onclick="changeMonth(1)" class="btn-cal-nav">NEXT</button>
+                    <button onclick="openAddModal()" class="btn-add-event">+ Add Event</button>
                 </div>
                 <div class="cal-grid" id="calendar-grid">
                     <div class="cal-day-label">SUN</div><div class="cal-day-label">MON</div>
@@ -50,6 +54,51 @@
             </section>
 
         </main>
+    </div>
+
+    <div id="add-modal" onclick="closeAddModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <h2>New Event</h2>
+            <p class="modal-label">TITLE</p>
+            <input id="add-title" type="text" placeholder="e.g. Quiz 3">
+            <p class="modal-label">DATE</p>
+            <input id="add-date" type="date">
+            <p class="modal-label">DETAILS</p>
+            <input id="add-desc" type="text" placeholder="e.g. 10:30am, Room 101 (optional)">
+            <div class="modal-actions">
+                <button class="btn-delete" onclick="closeAddModal()">Cancel</button>
+                <button onclick="submitAddEvent()">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="event-modal" onclick="closeEventModal()">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div id="modal-view">
+                <h2 id="modal-title"></h2>
+                <p class="modal-label">DATE</p>
+                <p id="modal-date"></p>
+                <p class="modal-label" id="modal-desc-label">DETAILS</p>
+                <p id="modal-desc"></p>
+                <div class="modal-actions">
+                    <button class="btn-delete" onclick="deleteEventFromModal()">Delete</button>
+                    <button class="btn-edit" onclick="openEditForm()">Edit</button>
+                    <button onclick="closeEventModal()">Close</button>
+                </div>
+            </div>
+            <div id="modal-edit" style="display:none">
+                <p class="modal-label">TITLE</p>
+                <input id="edit-title" type="text">
+                <p class="modal-label">DATE</p>
+                <input id="edit-date" type="date">
+                <p class="modal-label">DETAILS</p>
+                <input id="edit-desc" type="text">
+                <div class="modal-actions">
+                    <button class="btn-delete" onclick="closeEditForm()">Cancel</button>
+                    <button onclick="saveEventEdit()">Save</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>

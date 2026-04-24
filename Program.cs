@@ -134,6 +134,25 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
 // Calendar & History Endpoints
 app.MapGet("/events", async (AppDbContext db) => await db.Events.OrderBy(e => e.EventDate).ToListAsync());
 
+app.MapPost("/events", async (CalendarEventRequest req, AppDbContext db) => {
+    if (!DateTime.TryParse(req.Date, out var parsed)) return Results.BadRequest("Invalid date");
+    var ev = new CalendarEvent { Title = req.Title, EventDate = parsed, Description = req.Description ?? "" };
+    db.Events.Add(ev);
+    await db.SaveChangesAsync();
+    return Results.Ok(ev);
+});
+
+app.MapPut("/events/{id}", async (int id, CalendarEventRequest req, AppDbContext db) => {
+    var ev = await db.Events.FindAsync(id);
+    if (ev == null) return Results.NotFound();
+    if (!DateTime.TryParse(req.Date, out var parsed)) return Results.BadRequest("Invalid date");
+    ev.Title = req.Title;
+    ev.EventDate = parsed;
+    ev.Description = req.Description ?? "";
+    await db.SaveChangesAsync();
+    return Results.Ok(ev);
+});
+
 app.MapDelete("/events/{id}", async (int id, AppDbContext db) => {
     var ev = await db.Events.FindAsync(id);
     if (ev == null) return Results.NotFound();
@@ -147,3 +166,4 @@ app.Run();
 // API Records
 public record ChatRequest(string Message, string? ThreadId = null);
 public record ChatResponse(string Response, string ThreadId);
+public record CalendarEventRequest(string Title, string Date, string? Description = null);

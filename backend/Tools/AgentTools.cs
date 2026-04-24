@@ -58,9 +58,10 @@ public static class AgentTools
         return result.Text ?? "Event scheduled.";
     }
 
-    [Description("Reads the text content from a PDF file.")]
+    [Description("Reads the text content from a PDF file. Pass either a full path or just a filename like 'homework4.pdf' and it will search the user's Downloads and Desktop folders automatically.")]
     public static string ReadPdf(string filePath)
     {
+        filePath = ResolveFilePath(filePath, ".pdf");
         try
         {
             using var pdf = PdfDocument.Open(filePath);
@@ -73,9 +74,10 @@ public static class AgentTools
         }
     }
 
-    [Description("Reads the text content from a Word (.docx) document.")]
+    [Description("Reads the text content from a Word (.docx) document. Pass either a full path or just a filename like 'homework4.docx' and it will search the user's Downloads and Desktop folders automatically.")]
     public static string ReadWord(string filePath)
     {
+        filePath = ResolveFilePath(filePath, ".docx");
         try
         {
             using var doc = WordprocessingDocument.Open(filePath, false);
@@ -86,6 +88,33 @@ public static class AgentTools
         {
             return $"Error reading Word doc: {ex.Message}";
         }
+    }
+
+    private static string ResolveFilePath(string filePath, string extension)
+    {
+        if (File.Exists(filePath)) return filePath;
+
+        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string[] searchFolders =
+        [
+            Path.Combine(userProfile, "Downloads"),
+            Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+        ];
+
+        string fileName = Path.GetFileName(filePath);
+        if (!fileName.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+            fileName += extension;
+
+        foreach (var folder in searchFolders)
+        {
+            var candidate = Path.Combine(folder, fileName);
+            if (File.Exists(candidate)) return candidate;
+
+            var found = Directory.GetFiles(folder, $"*{Path.GetFileNameWithoutExtension(fileName)}*{extension}", SearchOption.TopDirectoryOnly).FirstOrDefault();
+            if (found != null) return found;
+        }
+
+        return filePath;
     }
 
     [Description("Connects to the user's inbox via IMAP to read the 5 most recent emails.")]

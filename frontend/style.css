@@ -65,6 +65,25 @@ input[type="text"] { flex: 1; padding: 14px; border: 1px solid #ddd; border-radi
 /* Calendar Grid */
 #calendar-view { display: none; padding: 30px; flex-direction: column; height: 100%; overflow-y: auto; }
 .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.cal-header-center { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.cal-header-center h2 { margin: 0; }
+#year-select { border: 1px solid #ddd; border-radius: 6px; padding: 4px 10px; font-size: 0.9rem; color: var(--lsu-purple); font-weight: bold; cursor: pointer; background: white; }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #eee; gap: 1px; border-radius: 8px; border: 1px solid #ddd; overflow: hidden; }
 .cal-day-label { background: var(--lsu-purple); color: var(--lsu-gold); text-align: center; padding: 10px; font-weight: bold; }
 .cal-cell { background: white; min-height: 110px; padding: 10px; }
+
+#event-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+#event-modal.active { display: flex; }
+.modal-box { background: white; border-radius: 12px; padding: 30px; max-width: 420px; width: 90%; border-top: 5px solid var(--lsu-gold); }
+.modal-box h2 { color: var(--lsu-purple); margin: 0 0 16px; font-size: 1.2rem; }
+.modal-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; color: var(--lsu-gold); margin: 12px 0 2px; }
+.modal-box p { color: #444; margin: 0; }
+.modal-actions { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
+.modal-actions button { border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+.btn-delete { background: #fee2e2; color: #dc2626; }
+.btn-edit { background: #fef9c3; color: #854d0e; }
+.modal-actions button:not(.btn-delete):not(.btn-edit) { background: var(--lsu-purple); color: white; }
+#modal-edit input, #add-modal input { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; margin-bottom: 4px; box-sizing: border-box; }
+#add-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+#add-modal.active { display: flex; }
+.btn-add-event { background: var(--lsu-gold); color: var(--lsu-purple); border: none; padding: 8px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; }
