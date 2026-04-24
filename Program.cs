@@ -6,14 +6,15 @@ using Microsoft.EntityFrameworkCore;
 using OpenAI;
 using System.ClientModel;
 using Microsoft.Extensions.Options;
-
-const string DefaultBackendUrl = "http://127.0.0.1:5188";
+using System.Net;
+using System.Net.Sockets;
 
 var builder = WebApplication.CreateBuilder(args);
+var selectedBackendUrl = ResolveBackendUrl();
 
 if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
 {
-    builder.WebHost.UseUrls(DefaultBackendUrl);
+    builder.WebHost.UseUrls(selectedBackendUrl);
 }
 
 builder.Services.AddCors(options => options.AddDefaultPolicy(p => 
@@ -96,7 +97,7 @@ app.MapScalarApiReference(options => options.WithTheme(ScalarTheme.DeepSpace));
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "ok",
-    backendUrl = DefaultBackendUrl
+    backendUrl = selectedBackendUrl
 }));
 
 // Main Chat Logic
@@ -245,6 +246,35 @@ app.MapPost("/emails/{id:int}/events", async (int id, EmailManagerAgentService m
     Results.Ok(await manager.AddEventsForEmailAsync(id, cancellationToken)));
 
 app.Run();
+
+static string ResolveBackendUrl()
+{
+    var candidatePorts = new[] { 5188, 5189, 5190, 5191, 5192 };
+    foreach (var port in candidatePorts)
+    {
+        if (IsTcpPortAvailable(port))
+        {
+            return $"http://127.0.0.1:{port}";
+        }
+    }
+
+    return "http://127.0.0.1:5188";
+}
+
+static bool IsTcpPortAvailable(int port)
+{
+    try
+    {
+        using var listener = new TcpListener(IPAddress.Loopback, port);
+        listener.Start();
+        listener.Stop();
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
 
 // API Records
 public record ChatRequest(string Message, string? ThreadId = null);

@@ -1,18 +1,32 @@
 let threadId = null;
 let viewDate = new Date();
 let storedEvents = [];
-const backendBaseUrl = resolveBackendBaseUrl();
+const backendBaseUrlPromise = resolveBackendBaseUrl();
 
-function resolveBackendBaseUrl() {
+async function resolveBackendBaseUrl() {
     const explicit = window.localStorage.getItem('carts-backend-url');
     if (explicit) return explicit.replace(/\/$/, '');
 
-    const { protocol, hostname, port } = window.location;
-    if ((protocol === 'http:' || protocol === 'https:') && port === '5188') {
+    const originBase = `${window.location.protocol}//${window.location.hostname}`;
+    const sameOriginPort = window.location.port;
+    const candidatePorts = ['5188', '5189', '5190', '5191', '5192'];
+
+    if (candidatePorts.includes(sameOriginPort)) {
         return '';
     }
 
-    return 'http://127.0.0.1:5188';
+    for (const port of candidatePorts) {
+        const baseUrl = `${originBase}:${port}`;
+        try {
+            const response = await fetch(`${baseUrl}/health`);
+            if (response.ok) {
+                return baseUrl;
+            }
+        } catch {
+        }
+    }
+
+    return `${originBase}:5188`;
 }
 
 async function send() {
@@ -26,6 +40,7 @@ async function send() {
     showThinking();
 
     try {
+        const backendBaseUrl = await backendBaseUrlPromise;
         const response = await fetch(`${backendBaseUrl}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -87,6 +102,7 @@ function nav(view) {
 }
 
 async function loadEvents() {
+    const backendBaseUrl = await backendBaseUrlPromise;
     const res = await fetch(`${backendBaseUrl}/events`);
     storedEvents = await res.json();
     renderCalendarGrid();
