@@ -51,14 +51,6 @@ public class CalendarEvent
     public string Description { get; set; } = string.Empty;
 }
 
-public enum EmailCategory
-{
-    General = 0,
-    Important = 1,
-    Promotions = 2,
-    Spam = 3
-}
-
 public class ProcessedEmail
 {
     public int Id { get; set; }
@@ -97,5 +89,4 @@ public class EmailCalendarSuggestion
     public DateTime? EndUtc { get; set; }
     public double Confidence { get; set; }
     public bool AddedToLocalCalendar { get; set; }
-    public bool AddedToGoogleCalendar { get; set; }
 }

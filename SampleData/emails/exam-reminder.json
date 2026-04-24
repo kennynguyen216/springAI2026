@@ -1,0 +1,11 @@
+{
+  "id": "email-001",
+  "threadId": "thread-001",
+  "fromAddress": "professor@example.edu",
+  "subject": "Exam reminder",
+  "snippet": "Midterm exam next Friday",
+  "plainTextBody": "Your midterm exam is on 2026-05-01 at 9:00 AM in Room 204. Please arrive 10 minutes early.",
+  "labels": ["INBOX"],
+  "receivedAtUtc": "2026-04-24T12:00:00Z",
+  "isArchived": false
+}

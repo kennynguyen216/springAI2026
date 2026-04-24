@@ -1,0 +1,11 @@
+{
+  "id": "email-002",
+  "threadId": "thread-002",
+  "fromAddress": "store@example.com",
+  "subject": "Weekend sale",
+  "snippet": "Save 25 percent on supplies",
+  "plainTextBody": "Weekend sale starts Friday. Save 25 percent on school supplies with code SAVE25.",
+  "labels": ["INBOX"],
+  "receivedAtUtc": "2026-04-23T15:00:00Z",
+  "isArchived": false
+}

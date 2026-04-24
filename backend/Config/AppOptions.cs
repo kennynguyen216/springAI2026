@@ -14,20 +14,16 @@ public sealed class EmbeddingModelOptions
     public string ApiKey { get; set; } = "test123";
 }
 
-public sealed class GoogleWorkspaceOptions
+public sealed class LocalMailboxOptions
 {
-    public string CredentialsPath { get; set; } = "secrets/google-oauth-client.json";
-    public string TokenDirectory { get; set; } = ".tokens/google-workspace";
-    public string ApplicationName { get; set; } = "SpringAI2026 Email Organizer";
-    public bool EnableGoogleCalendarWrite { get; set; }
-    public string CalendarId { get; set; } = "primary";
+    public string SampleDirectory { get; set; } = "SampleData/emails";
+    public bool PersistCategoryLabels { get; set; } = true;
 }
 
 public sealed class EmailProcessingOptions
 {
-    public string DefaultQuery { get; set; } = "in:inbox";
+    public string DefaultQuery { get; set; } = string.Empty;
     public int DefaultSyncCount { get; set; } = 10;
-    public bool ApplyGmailLabelsByDefault { get; set; } = true;
+    public bool ApplyLocalLabelsByDefault { get; set; } = true;
     public bool AddEventsToLocalCalendarByDefault { get; set; } = true;
-    public bool AddEventsToGoogleCalendarByDefault { get; set; }
 }

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 public sealed class EmailManagerAgentService
 {
-    private readonly GmailMailboxService _gmailMailbox;
+    private readonly LocalMailboxService _mailbox;
     private readonly EmailMemoryService _memory;
     private readonly EmailClassificationAgent _classificationAgent;
     private readonly EmailSummaryAgent _summaryAgent;
@@ -14,7 +14,7 @@ public sealed class EmailManagerAgentService
     private readonly EmailProcessingOptions _options;
 
     public EmailManagerAgentService(
-        GmailMailboxService gmailMailbox,
+        LocalMailboxService mailbox,
         EmailMemoryService memory,
         EmailClassificationAgent classificationAgent,
         EmailSummaryAgent summaryAgent,
@@ -23,7 +23,7 @@ public sealed class EmailManagerAgentService
         AppDbContext dbContext,
         IOptions<EmailProcessingOptions> options)
     {
-        _gmailMailbox = gmailMailbox;
+        _mailbox = mailbox;
         _memory = memory;
         _classificationAgent = classificationAgent;
         _summaryAgent = summaryAgent;
@@ -39,12 +39,11 @@ public sealed class EmailManagerAgentService
             _options.DefaultSyncCount,
             _options.DefaultQuery,
             true,
-            _options.ApplyGmailLabelsByDefault,
+            _options.ApplyLocalLabelsByDefault,
             _options.AddEventsToLocalCalendarByDefault,
-            _options.AddEventsToGoogleCalendarByDefault,
             false);
 
-        var messages = await _gmailMailbox.GetRecentMessagesAsync(
+        var messages = await _mailbox.GetRecentMessagesAsync(
             request.MaxResults,
             request.Query,
             request.IncludeSpamTrash,
@@ -65,7 +64,6 @@ public sealed class EmailManagerAgentService
             processed.Count(result => result.Category == EmailCategory.Promotions.ToString()),
             processed.Count(result => result.Category == EmailCategory.Spam.ToString()),
             processed.Count(result => result.EventsAddedToLocalCalendar),
-            processed.Count(result => result.EventsAddedToGoogleCalendar),
             processed);
     }
 
@@ -74,7 +72,7 @@ public sealed class EmailManagerAgentService
         return _memory.SearchAsync(query, top, cancellationToken);
     }
 
-    public async Task<List<CalendarEvent>> AddEventsForEmailAsync(int processedEmailId, bool syncToGoogleCalendar, CancellationToken cancellationToken = default)
+    public async Task<List<CalendarEvent>> AddEventsForEmailAsync(int processedEmailId, CancellationToken cancellationToken = default)
     {
         var email = await _dbContext.ProcessedEmails
             .Include(item => item.CalendarSuggestions)
@@ -102,11 +100,6 @@ public sealed class EmailManagerAgentService
                 created.Add(localCalendarEvent);
             }
 
-            if (syncToGoogleCalendar && !suggestion.AddedToGoogleCalendar)
-            {
-                var googleEventId = await _gmailMailbox.CreateGoogleCalendarEventAsync(suggestion, cancellationToken);
-                suggestion.AddedToGoogleCalendar = !string.IsNullOrWhiteSpace(googleEventId);
-            }
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -132,7 +125,6 @@ public sealed class EmailManagerAgentService
                 Array.Empty<string>(),
                 Array.Empty<CalendarEventSummary>(),
                 true,
-                false,
                 false);
         }
 
@@ -173,24 +165,9 @@ public sealed class EmailManagerAgentService
             localCalendarEvents.Add(localEvent);
         }
 
-        var googleEventsAdded = 0;
-        if (request.AddEventsToGoogleCalendar)
-        {
-            foreach (var suggestion in suggestions.Where(item => item.StartUtc.HasValue))
-            {
-                var googleEventId = await _gmailMailbox.CreateGoogleCalendarEventAsync(suggestion, cancellationToken);
-                suggestion.AddedToGoogleCalendar = !string.IsNullOrWhiteSpace(googleEventId);
-                if (suggestion.AddedToGoogleCalendar)
-                {
-                    googleEventsAdded++;
-                }
-            }
-        }
-
         var labelsApplied = false;
-        if (request.ApplyGmailLabels)
+        if (request.ApplyLocalLabels)
         {
-            await _gmailMailbox.ApplyCategoryAsync(message.GmailMessageId, parsedCategory, cancellationToken);
             labelsApplied = true;
         }
 
@@ -212,7 +189,8 @@ public sealed class EmailManagerAgentService
             ActionItemsJson = JsonSerializer.Serialize(actionItems),
             Category = parsedCategory.ToString(),
             ClassificationReasoning = classification.Reasoning,
-            GmailLabelIdsJson = JsonSerializer.Serialize(message.GmailLabelIds),
+            GmailLabelIdsJson = JsonSerializer.Serialize(
+                labelsApplied ? _mailbox.GetLabelsForCategory(parsedCategory) : message.GmailLabelIds),
             EmbeddingJson = embeddingJson,
             ReceivedAtUtc = message.ReceivedAtUtc,
             ProcessedAtUtc = DateTime.UtcNow,
@@ -235,20 +213,18 @@ public sealed class EmailManagerAgentService
                 suggestion.StartUtc,
                 suggestion.IsAllDay,
                 suggestion.Confidence,
-                suggestion.AddedToLocalCalendar,
-                suggestion.AddedToGoogleCalendar)).ToList(),
+                suggestion.AddedToLocalCalendar)).ToList(),
             false,
-            localCalendarEvents.Count > 0,
-            googleEventsAdded > 0);
+            localCalendarEvents.Count > 0);
     }
 
     private static EmailCalendarSuggestion BuildCalendarSuggestion(ValidatedCalendarEvent item)
     {
-        var startUtc = TryParseDateTime(item.Date, item.StartTime, item.AllDay, out var parsedStart)
+        var startUtc = EmailDateParser.TryParseDateTime(item.Date, item.StartTime, item.AllDay, out var parsedStart)
             ? parsedStart
             : null;
 
-        var endUtc = TryParseDateTime(item.Date, item.EndTime, item.AllDay, out var parsedEnd)
+        var endUtc = EmailDateParser.TryParseDateTime(item.Date, item.EndTime, item.AllDay, out var parsedEnd)
             ? parsedEnd
             : item.AllDay && parsedStart.HasValue
                 ? parsedStart.Value.AddDays(1)
@@ -267,43 +243,14 @@ public sealed class EmailManagerAgentService
             Confidence = item.Confidence
         };
     }
-
-    private static bool TryParseDateTime(string date, string time, bool allDay, out DateTime? parsed)
-    {
-        parsed = null;
-        if (string.IsNullOrWhiteSpace(date))
-        {
-            return false;
-        }
-
-        if (allDay || string.IsNullOrWhiteSpace(time))
-        {
-            if (DateTime.TryParse(date, out var dayOnly))
-            {
-                parsed = DateTime.SpecifyKind(dayOnly.Date, DateTimeKind.Utc);
-                return true;
-            }
-
-            return false;
-        }
-
-        if (DateTime.TryParse($"{date} {time}", out var dateTime))
-        {
-            parsed = DateTime.SpecifyKind(dateTime.ToUniversalTime(), DateTimeKind.Utc);
-            return true;
-        }
-
-        return false;
-    }
 }
 
 public sealed record EmailSyncRequest(
     int MaxResults,
     string? Query,
     bool IncludeSpamTrash,
-    bool ApplyGmailLabels,
+    bool ApplyLocalLabels,
     bool AddEventsToLocalCalendar,
-    bool AddEventsToGoogleCalendar,
     bool ForceReprocess);
 
 public sealed record EmailSyncSummary(
@@ -314,7 +261,6 @@ public sealed record EmailSyncSummary(
     int PromotionsCount,
     int SpamCount,
     int EmailsWithLocalCalendarEvents,
-    int EmailsWithGoogleCalendarEvents,
     IReadOnlyList<EmailProcessingResult> Results);
 
 public sealed record EmailProcessingResult(
@@ -325,13 +271,11 @@ public sealed record EmailProcessingResult(
     IReadOnlyList<string> ActionItems,
     IReadOnlyList<CalendarEventSummary> SuggestedEvents,
     bool WasSkipped,
-    bool EventsAddedToLocalCalendar,
-    bool EventsAddedToGoogleCalendar);
+    bool EventsAddedToLocalCalendar);
 
 public sealed record CalendarEventSummary(
     string Title,
     DateTime? StartUtc,
     bool IsAllDay,
     double Confidence,
-    bool AddedToLocalCalendar,
-    bool AddedToGoogleCalendar);
+    bool AddedToLocalCalendar);

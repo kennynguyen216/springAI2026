@@ -87,18 +87,18 @@ public static class AgentTools
         }
     }
 
-    [Description("Reads recent Gmail messages using the configured Google OAuth desktop credentials.")]
+    [Description("Reads recent local sample emails from the configured sample directory.")]
     public static async Task<string> ReadRecentEmails(int maxResults, string? query, IServiceProvider sp)
     {
-        var gmailMailbox = sp.GetRequiredService<GmailMailboxService>();
-        var messages = await gmailMailbox.GetRecentMessagesAsync(
+        var mailbox = sp.GetRequiredService<LocalMailboxService>();
+        var messages = await mailbox.GetRecentMessagesAsync(
             Math.Clamp(maxResults, 1, 25),
             query,
-            includeSpamTrash: true);
+            true);
 
         if (messages.Count == 0)
         {
-            return "No Gmail messages were found for that query.";
+            return "No local sample emails were found for that query.";
         }
 
         var builder = new StringBuilder();
@@ -120,13 +120,12 @@ public static class AgentTools
         return builder.ToString().Trim();
     }
 
-    [Description("Runs the inbox manager workflow: read recent Gmail messages, classify them, summarize them, and add valid dates to the calendar.")]
+    [Description("Runs the inbox manager workflow over local sample emails: classify, summarize, and add valid dates to the calendar.")]
     public static async Task<string> SyncAndOrganizeRecentEmails(
         int maxResults,
         string? query,
         bool applyLabels,
         bool addEventsToCalendar,
-        bool addEventsToGoogleCalendar,
         IServiceProvider sp)
     {
         var manager = sp.GetRequiredService<EmailManagerAgentService>();
@@ -135,9 +134,8 @@ public static class AgentTools
                 Math.Clamp(maxResults, 1, 50),
                 query,
                 IncludeSpamTrash: true,
-                ApplyGmailLabels: applyLabels,
+                ApplyLocalLabels: applyLabels,
                 AddEventsToLocalCalendar: addEventsToCalendar,
-                AddEventsToGoogleCalendar: addEventsToGoogleCalendar,
                 ForceReprocess: false));
 
         var builder = new StringBuilder();
@@ -147,7 +145,6 @@ public static class AgentTools
         builder.AppendLine($"Promotions: {summary.PromotionsCount}");
         builder.AppendLine($"Spam: {summary.SpamCount}");
         builder.AppendLine($"Local calendar additions: {summary.EmailsWithLocalCalendarEvents}");
-        builder.AppendLine($"Google Calendar additions: {summary.EmailsWithGoogleCalendarEvents}");
 
         foreach (var email in summary.Results.Where(result => !result.WasSkipped).Take(5))
         {
@@ -181,28 +178,17 @@ public static class AgentTools
                 $"[{result.Category}] {result.Subject}\nSimilarity: {result.Score:F2}\nSummary: {result.Summary}"));
     }
 
-    [Description("Shows whether Gmail and Google Calendar OAuth credentials are configured correctly.")]
-    public static async Task<string> GetGmailConnectionStatus(IServiceProvider sp)
+    [Description("Shows whether the local sample-email directory exists and where the workflow reads messages from.")]
+    public static Task<string> GetLocalMailboxStatus(IServiceProvider sp)
     {
-        var googleWorkspace = sp.GetRequiredService<GoogleWorkspaceService>();
-        var status = await googleWorkspace.GetDetailedStatusAsync();
-
-        var lines = new List<string>
+        var mailbox = sp.GetRequiredService<LocalMailboxService>();
+        var directory = mailbox.ResolvedSampleDirectory;
+        var lines = new[]
         {
-            $"Credentials file found: {status.CredentialsFileFound}",
-            $"Token directory exists: {status.TokenDirectoryExists}",
-            $"Credentials path: {status.CredentialsPath}",
-            $"Token directory: {status.TokenDirectory}",
-            $"Google Calendar sync enabled: {status.GoogleCalendarWriteEnabled}",
-            $"Calendar ID: {status.CalendarId}"
+            $"Sample directory exists: {Directory.Exists(directory)}",
+            $"Sample directory: {directory}"
         };
-
-        if (!string.IsNullOrWhiteSpace(status.AuthenticatedEmail))
-        {
-            lines.Add($"Authenticated email: {status.AuthenticatedEmail}");
-        }
-
-        return string.Join("\n", lines);
+        return Task.FromResult(string.Join("\n", lines));
     }
 
     [Description("Saves a new event to the user's personal calendar database.")]
