@@ -1,11 +1,15 @@
 using System.ComponentModel;
-using System.Text;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.DependencyInjection;
+using UglyToad.PdfPig;
+using DocumentFormat.OpenXml.Packaging;
+using MailKit.Net.Imap;
+using MailKit.Search;
+using MailKit;
 
 public static class AgentTools
 {
-    private static readonly HttpClient _httpClient = new();
+    private static readonly HttpClient _httpClient = new HttpClient();
 
     [Description("Gets the current time and current weather conditions for a specific city or location.")]
     public static async Task<string> GetWeatherAndTime(string location)
@@ -13,9 +17,9 @@ public static class AgentTools
         var currentTime = DateTime.Now.ToString("h:mm tt on dddd, MMMM d, yyyy");
         try
         {
-            var formattedLocation = location.Replace(" ", "+");
-            var url = $"https://wttr.in/{formattedLocation}?format=3";
-            var weatherReport = await _httpClient.GetStringAsync(url);
+            string formattedLocation = location.Replace(" ", "+");
+            string url = $"https://wttr.in/{formattedLocation}?format=3";
+            string weatherReport = await _httpClient.GetStringAsync(url);
             return $"System Time: {currentTime}. Live Weather Report: {weatherReport.Trim()}";
         }
         catch (Exception ex)
@@ -29,14 +33,12 @@ public static class AgentTools
     {
         var agent = sp.GetRequiredKeyedService<AIAgent>("EmailAgent");
         var manager = sp.GetRequiredService<AgentSessionManager>();
-        var sessionKey = $"{threadId}_email";
-
+        string sessionKey = $"{threadId}_email";
         if (!manager.Sessions.TryGetValue(sessionKey, out var session))
         {
             session = await agent.CreateSessionAsync();
             manager.Sessions[sessionKey] = session;
         }
-
         var result = await agent.RunAsync(emailBody, session);
         return result.Text ?? "No dates found.";
     }
@@ -46,165 +48,114 @@ public static class AgentTools
     {
         var agent = sp.GetRequiredKeyedService<AIAgent>("CalendarAgent");
         var manager = sp.GetRequiredService<AgentSessionManager>();
-        var sessionKey = $"{threadId}_cal";
-
+        string sessionKey = $"{threadId}_cal";
         if (!manager.Sessions.TryGetValue(sessionKey, out var session))
         {
             session = await agent.CreateSessionAsync();
             manager.Sessions[sessionKey] = session;
         }
-
         var result = await agent.RunAsync($"Schedule: {eventDetails}", session);
         return result.Text ?? "Event scheduled.";
     }
 
-    [Description("Reads the text content from a PDF file.")]
-    public static string ReadPdf(string filePath, IServiceProvider sp)
+    [Description("Reads the text content from a PDF file. Pass either a full path or just a filename like 'homework4.pdf' and it will search the user's Downloads and Desktop folders automatically.")]
+    public static string ReadPdf(string filePath)
     {
-        var documents = sp.GetRequiredService<LocalDocumentService>();
-        return documents.ReadDocumentText(filePath);
-    }
-
-    [Description("Reads the text content from a Word (.docx) document.")]
-    public static string ReadWord(string filePath, IServiceProvider sp)
-    {
-        var documents = sp.GetRequiredService<LocalDocumentService>();
-        return documents.ReadDocumentText(filePath);
-    }
-
-    [Description("Finds recent local documents by keyword across Documents, Desktop, Downloads, and the project folder.")]
-    public static Task<string> FindRecentDocuments(string keyword, int maxResults, IServiceProvider sp)
-    {
-        var documents = sp.GetRequiredService<LocalDocumentService>();
-        var matches = documents.FindRecentDocuments(keyword, maxResults);
-
-        if (matches.Count == 0)
+        filePath = ResolveFilePath(filePath, ".pdf");
+        try
         {
-            return Task.FromResult($"No local documents were found matching '{keyword}'.");
+            using var pdf = PdfDocument.Open(filePath);
+            var text = string.Join("\n", pdf.GetPages().Select(p => p.Text));
+            return string.IsNullOrWhiteSpace(text) ? "The PDF is empty." : text;
+        }
+        catch (Exception ex)
+        {
+            return $"Error reading PDF: {ex.Message}";
+        }
+    }
+
+    [Description("Reads the text content from a Word (.docx) document. Pass either a full path or just a filename like 'homework4.docx' and it will search the user's Downloads and Desktop folders automatically.")]
+    public static string ReadWord(string filePath)
+    {
+        filePath = ResolveFilePath(filePath, ".docx");
+        try
+        {
+            using var doc = WordprocessingDocument.Open(filePath, false);
+            var body = doc.MainDocumentPart?.Document.Body;
+            return body?.InnerText ?? "The Word document is empty or unreadable.";
+        }
+        catch (Exception ex)
+        {
+            return $"Error reading Word doc: {ex.Message}";
+        }
+    }
+
+    private static string ResolveFilePath(string filePath, string extension)
+    {
+        if (File.Exists(filePath)) return filePath;
+
+        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string[] searchFolders =
+        [
+            Path.Combine(userProfile, "Downloads"),
+            Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+        ];
+
+        string fileName = Path.GetFileName(filePath);
+        if (!fileName.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+            fileName += extension;
+
+        foreach (var folder in searchFolders)
+        {
+            var candidate = Path.Combine(folder, fileName);
+            if (File.Exists(candidate)) return candidate;
+
+            var found = Directory.GetFiles(folder, $"*{Path.GetFileNameWithoutExtension(fileName)}*{extension}", SearchOption.TopDirectoryOnly).FirstOrDefault();
+            if (found != null) return found;
         }
 
-        var builder = new StringBuilder();
-        foreach (var match in matches)
-        {
-            builder.AppendLine(match.Name);
-            builder.AppendLine($"Path: {match.FullPath}");
-            builder.AppendLine($"Last modified (UTC): {match.LastWriteTimeUtc:yyyy-MM-dd HH:mm:ss}");
-            builder.AppendLine();
-        }
-
-        return Task.FromResult(builder.ToString().Trim());
+        return filePath;
     }
 
-    [Description("Returns the single most recent local document that matches a keyword, such as syllabus, invoice, or notes.")]
-    public static Task<string> GetMostRecentDocument(string keyword, IServiceProvider sp)
+    [Description("Connects to the user's inbox via IMAP to read the 5 most recent emails.")]
+    public static async Task<string> ReadRecentEmails()
     {
-        var documents = sp.GetRequiredService<LocalDocumentService>();
-        return Task.FromResult(documents.DescribeMostRecentDocument(keyword));
-    }
+        // Replace with your info or pull from AppSettings
+        string email = "keithmills4444@gmail.com"; 
+        string appPassword = "uhsstirksoiplnmh"; 
 
-    [Description("Reads recent local sample emails from the configured sample directory.")]
-    public static async Task<string> ReadRecentEmails(int maxResults, string? query, IServiceProvider sp)
-    {
-        var mailbox = sp.GetRequiredService<LocalMailboxService>();
-        var messages = await mailbox.GetRecentMessagesAsync(
-            Math.Clamp(maxResults, 1, 25),
-            query,
-            true);
-
-        if (messages.Count == 0)
+        try
         {
-            return "No local sample emails were found for that query.";
-        }
+            using var client = new ImapClient();
+            // Use imap.gmail.com for Gmail or outlook.office365.com for Outlook/LSU
+            await client.ConnectAsync("imap.gmail.com", 993, true); 
+            await client.AuthenticateAsync(email, appPassword);
 
-        var builder = new StringBuilder();
-        foreach (var message in messages)
-        {
-            var preview = message.PlainTextBody.Length > 240
-                ? $"{message.PlainTextBody[..240]}..."
-                : message.PlainTextBody;
+            var inbox = client.Inbox;
+            await inbox.OpenAsync(FolderAccess.ReadOnly);
 
-            builder.AppendLine($"From: {message.FromAddress}");
-            builder.AppendLine($"Subject: {message.Subject}");
-            builder.AppendLine($"Received (UTC): {message.ReceivedAtUtc:yyyy-MM-dd HH:mm}");
-            builder.AppendLine($"Preview: {preview}");
-            builder.AppendLine();
-            builder.AppendLine("---");
-            builder.AppendLine();
-        }
+            var results = new List<string>();
+            int count = inbox.Count;
+            int start = Math.Max(0, count - 5);
 
-        return builder.ToString().Trim();
-    }
-
-    [Description("Runs the inbox manager workflow over local sample emails: classify, summarize, and add valid dates to the calendar.")]
-    public static async Task<string> SyncAndOrganizeRecentEmails(
-        int maxResults,
-        string? query,
-        bool applyLabels,
-        bool addEventsToCalendar,
-        IServiceProvider sp)
-    {
-        var manager = sp.GetRequiredService<EmailManagerAgentService>();
-        var summary = await manager.ProcessInboxAsync(
-            new EmailSyncRequest(
-                Math.Clamp(maxResults, 1, 50),
-                query,
-                true,
-                applyLabels,
-                addEventsToCalendar,
-                false));
-
-        var builder = new StringBuilder();
-        builder.AppendLine($"Processed: {summary.ProcessedCount}");
-        builder.AppendLine($"Skipped (already indexed): {summary.SkippedCount}");
-        builder.AppendLine($"Important: {summary.ImportantCount}");
-        builder.AppendLine($"Promotions: {summary.PromotionsCount}");
-        builder.AppendLine($"Spam: {summary.SpamCount}");
-        builder.AppendLine($"Local calendar additions: {summary.EmailsWithLocalCalendarEvents}");
-
-        foreach (var email in summary.Results.Where(result => !result.WasSkipped).Take(5))
-        {
-            builder.AppendLine();
-            builder.AppendLine($"Subject: {email.Subject}");
-            builder.AppendLine($"Category: {email.Category}");
-            builder.AppendLine($"Summary: {email.Summary}");
-            if (email.ActionItems.Count > 0)
+            for (int i = count - 1; i >= start; i--)
             {
-                builder.AppendLine($"Action items: {string.Join("; ", email.ActionItems)}");
+                var message = await inbox.GetMessageAsync(i);
+
+                string body = message.TextBody ?? "No content";
+                string safeSnippet = body.Length > 300 ? body[..300] : body;
+
+                results.Add($"From: {message.From}\nSubject: {message.Subject}\nContent: {safeSnippet}");
             }
+
+            await client.DisconnectAsync(true);
+            return string.Join("\n\n---\n\n", results);
         }
-
-        return builder.ToString().Trim();
-    }
-
-    [Description("Searches processed email summaries and embeddings using the local RAG index.")]
-    public static async Task<string> SearchOrganizedEmails(string query, int top, IServiceProvider sp)
-    {
-        var manager = sp.GetRequiredService<EmailManagerAgentService>();
-        var results = await manager.SearchInboxMemoryAsync(query, Math.Clamp(top, 1, 10));
-
-        if (results.Count == 0)
+        catch (Exception ex)
         {
-            return "No matching processed emails were found.";
+            Console.WriteLine($"[GMAIL DEBUG ERROR]: {ex.Message}");
+            return $"I was able to connect to the inbox, but I encountered a technical issue reading the message content. Please try again or check the terminal logs.";
         }
-
-        return string.Join(
-            "\n\n",
-            results.Select(result =>
-                $"[{result.Category}] {result.Subject}\nSimilarity: {result.Score:F2}\nSummary: {result.Summary}"));
-    }
-
-    [Description("Shows whether the local sample-email directory exists and where the workflow reads messages from.")]
-    public static Task<string> GetLocalMailboxStatus(IServiceProvider sp)
-    {
-        var mailbox = sp.GetRequiredService<LocalMailboxService>();
-        var directory = mailbox.ResolvedSampleDirectory;
-        var lines = new[]
-        {
-            $"Sample directory exists: {Directory.Exists(directory)}",
-            $"Sample directory: {directory}"
-        };
-
-        return Task.FromResult(string.Join("\n", lines));
     }
 
     [Description("Saves a new event to the user's personal calendar database.")]
@@ -213,20 +164,20 @@ public static class AgentTools
         using var scope = sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        if (DateTime.TryParse(dateStr, out var parsedDate))
+        if (DateTime.TryParse(dateStr, out DateTime parsedDate))
         {
-            var newEvent = new CalendarEvent
-            {
-                Title = title,
-                EventDate = parsedDate,
-                Description = description
+            var newEvent = new CalendarEvent 
+            { 
+                Title = title, 
+                EventDate = parsedDate, 
+                Description = description 
             };
-
+        
             db.Events.Add(newEvent);
             await db.SaveChangesAsync();
             return $"Successfully added '{title}' to your calendar for {parsedDate:MMMM dd, yyyy}.";
         }
-
+    
         return "I couldn't parse that date. Please tell me the date in a clearer format (e.g., YYYY-MM-DD).";
     }
 }

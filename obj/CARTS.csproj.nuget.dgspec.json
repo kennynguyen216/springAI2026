@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.csproj": {}
+    "C:\\Users\\kenne\\OneDrive\\Documents\\GitHub\\springAI2026\\CARTS.csproj": {}
   },
   "projects": {
-    "/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.csproj": {
+    "C:\\Users\\kenne\\OneDrive\\Documents\\GitHub\\springAI2026\\CARTS.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.csproj",
+        "projectUniqueName": "C:\\Users\\kenne\\OneDrive\\Documents\\GitHub\\springAI2026\\CARTS.csproj",
         "projectName": "CARTS",
-        "projectPath": "/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.csproj",
-        "packagesPath": "/Users/jaydenhong/.nuget/packages/",
-        "outputPath": "/Users/jaydenhong/Documents/GitHub/springAI2026/obj/",
+        "projectPath": "C:\\Users\\kenne\\OneDrive\\Documents\\GitHub\\springAI2026\\CARTS.csproj",
+        "packagesPath": "C:\\Users\\kenne\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\kenne\\OneDrive\\Documents\\GitHub\\springAI2026\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/jaydenhong/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\kenne\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -48,6 +48,10 @@
               "target": "Package",
               "version": "[3.5.1, )"
             },
+            "MailKit": {
+              "target": "Package",
+              "version": "[4.16.0, )"
+            },
             "Microsoft.Agents.AI": {
               "target": "Package",
               "version": "[1.0.0-rc4, )"
@@ -77,6 +81,18 @@
             "Microsoft.Extensions.AI.OpenAI": {
               "target": "Package",
               "version": "[10.5.0, )"
+            },
+            "Microsoft.Extensions.Configuration.Json": {
+              "target": "Package",
+              "version": "[10.0.5, )"
+            },
+            "Microsoft.Extensions.DependencyInjection": {
+              "target": "Package",
+              "version": "[10.0.5, )"
+            },
+            "Microsoft.Extensions.Hosting": {
+              "target": "Package",
+              "version": "[10.0.5, )"
             },
             "ModelContextProtocol": {
               "target": "Package",
@@ -118,7 +134,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.203/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.203/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
