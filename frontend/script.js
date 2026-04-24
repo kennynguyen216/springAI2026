@@ -1,6 +1,19 @@
 let threadId = null;
 let viewDate = new Date();
 let storedEvents = [];
+const backendBaseUrl = resolveBackendBaseUrl();
+
+function resolveBackendBaseUrl() {
+    const explicit = window.localStorage.getItem('carts-backend-url');
+    if (explicit) return explicit.replace(/\/$/, '');
+
+    const { protocol, hostname, port } = window.location;
+    if ((protocol === 'http:' || protocol === 'https:') && port === '5188') {
+        return '';
+    }
+
+    return 'http://127.0.0.1:5188';
+}
 
 async function send() {
     const input = document.getElementById('query');
@@ -13,7 +26,7 @@ async function send() {
     showThinking();
 
     try {
-        const response = await fetch('/chat', {
+        const response = await fetch(`${backendBaseUrl}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ Message: val, ThreadId: threadId })
@@ -74,7 +87,7 @@ function nav(view) {
 }
 
 async function loadEvents() {
-    const res = await fetch('/events');
+    const res = await fetch(`${backendBaseUrl}/events`);
     storedEvents = await res.json();
     renderCalendarGrid();
 }

@@ -155,6 +155,18 @@ public sealed class LocalDocumentService
         return $"Most recent match for '{keyword}': {match.Name}\nPath: {match.FullPath}\nLast modified (UTC): {match.LastWriteTimeUtc:yyyy-MM-dd HH:mm:ss}";
     }
 
+    public string DescribeDocumentByName(string filePathOrName)
+    {
+        var resolvedPath = ResolveDocumentPath(filePathOrName);
+        if (resolvedPath is null)
+        {
+            return $"I couldn't find a local document matching '{filePathOrName}'.";
+        }
+
+        var info = new FileInfo(resolvedPath);
+        return $"Found local document: {info.Name}\nPath: {info.FullName}\nLast modified (UTC): {info.LastWriteTimeUtc:yyyy-MM-dd HH:mm:ss}\nSize: {info.Length} bytes";
+    }
+
     private static IEnumerable<string> EnumerateFilesSafe(string root)
     {
         var pending = new Stack<string>();
@@ -220,6 +232,8 @@ public sealed record LocalDocumentMatch(
 
 public static class DocumentQueryRouter
 {
+    private static readonly string[] SupportedExtensions = [".pdf", ".docx", ".txt", ".md", ".rtf"];
+
     public static bool TryGetMostRecentKeyword(string input, out string keyword)
     {
         keyword = string.Empty;
@@ -260,6 +274,29 @@ public static class DocumentQueryRouter
 
             keyword = candidate.Trim();
             return !string.IsNullOrWhiteSpace(keyword);
+        }
+
+        return false;
+    }
+
+    public static bool TryGetReferencedDocumentName(string input, out string fileName)
+    {
+        fileName = string.Empty;
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return false;
+        }
+
+        foreach (var token in input.Split([' ', '\n', '\r', '\t', '"', '\'', '(', ')', '[', ']', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var trimmed = token.Trim().TrimEnd('?', '.', '!', ';', ':');
+            var extension = Path.GetExtension(trimmed);
+            if (!string.IsNullOrWhiteSpace(extension) &&
+                SupportedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+            {
+                fileName = Path.GetFileName(trimmed);
+                return !string.IsNullOrWhiteSpace(fileName);
+            }
         }
 
         return false;

@@ -7,7 +7,14 @@ using OpenAI;
 using System.ClientModel;
 using Microsoft.Extensions.Options;
 
+const string DefaultBackendUrl = "http://127.0.0.1:5188";
+
 var builder = WebApplication.CreateBuilder(args);
+
+if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+{
+    builder.WebHost.UseUrls(DefaultBackendUrl);
+}
 
 builder.Services.AddCors(options => options.AddDefaultPolicy(p => 
     p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
@@ -86,6 +93,11 @@ using (var scope = app.Services.CreateScope())
 
 app.MapOpenApi();
 app.MapScalarApiReference(options => options.WithTheme(ScalarTheme.DeepSpace));
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "ok",
+    backendUrl = DefaultBackendUrl
+}));
 
 // Main Chat Logic
 app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbContext db, AgentSessionManager manager, ILogger<Program> logger) =>
@@ -97,6 +109,18 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
         {
             var documents = sp.GetRequiredService<LocalDocumentService>();
             var routedResponse = documents.DescribeMostRecentDocument(keyword);
+
+            db.Messages.Add(new ChatMessage { ThreadId = threadId, Role = "user", Content = request.Message, Timestamp = DateTime.UtcNow });
+            db.Messages.Add(new ChatMessage { ThreadId = threadId, Role = "assistant", Content = routedResponse, Timestamp = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new ChatResponse(routedResponse, threadId));
+        }
+
+        if (DocumentQueryRouter.TryGetReferencedDocumentName(request.Message, out var fileName))
+        {
+            var documents = sp.GetRequiredService<LocalDocumentService>();
+            var routedResponse = documents.DescribeDocumentByName(fileName);
 
             db.Messages.Add(new ChatMessage { ThreadId = threadId, Role = "user", Content = request.Message, Timestamp = DateTime.UtcNow });
             db.Messages.Add(new ChatMessage { ThreadId = threadId, Role = "assistant", Content = routedResponse, Timestamp = DateTime.UtcNow });
