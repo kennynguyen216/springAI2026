@@ -100,6 +100,15 @@ public class SmokeTests
     }
 
     [Fact]
+    public void DocumentQueryRouter_ExtractsBareDocumentReference()
+    {
+        var matched = DocumentQueryRouter.TryGetBareDocumentReference("retrieve ethics_essay for me", out var documentName);
+
+        Assert.True(matched);
+        Assert.Equal("ethics_essay", documentName);
+    }
+
+    [Fact]
     public void LocalDocumentService_FindsMostRecentMatchingDocument()
     {
         var root = Path.Combine(Path.GetTempPath(), $"springAI2026-docs-{Guid.NewGuid():N}");
@@ -172,6 +181,30 @@ public class SmokeTests
             var description = service.DescribeDocumentByName("ethics_essay.txt");
 
             Assert.Contains("Found local document: ethics_essay.txt", description);
+            Assert.Contains(filePath, description);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void LocalDocumentService_DescribesExtensionlessDocumentReference()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"springAI2026-doc-extensionless-{Guid.NewGuid():N}");
+        var docs = Path.Combine(root, "Documents");
+        Directory.CreateDirectory(docs);
+
+        try
+        {
+            var filePath = Path.Combine(docs, "ethics_essay.pdf");
+            File.WriteAllText(filePath, "placeholder");
+
+            var service = new LocalDocumentService(new TestEnvironment(), [root, docs]);
+            var description = service.DescribeDocumentByName("ethics_essay");
+
+            Assert.Contains("Found local document: ethics_essay.pdf", description);
             Assert.Contains(filePath, description);
         }
         finally

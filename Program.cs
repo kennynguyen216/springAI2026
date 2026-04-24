@@ -130,6 +130,18 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
             return Results.Ok(new ChatResponse(routedResponse, threadId));
         }
 
+        if (DocumentQueryRouter.TryGetBareDocumentReference(request.Message, out var bareDocumentName))
+        {
+            var documents = sp.GetRequiredService<LocalDocumentService>();
+            var routedResponse = documents.DescribeDocumentByName(bareDocumentName);
+
+            db.Messages.Add(new ChatMessage { ThreadId = threadId, Role = "user", Content = request.Message, Timestamp = DateTime.UtcNow });
+            db.Messages.Add(new ChatMessage { ThreadId = threadId, Role = "assistant", Content = routedResponse, Timestamp = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new ChatResponse(routedResponse, threadId));
+        }
+
         // Recall History using models from Database.cs
         var dbMessages = await db.Messages
             .Where(m => m.ThreadId == threadId)

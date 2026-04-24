@@ -233,6 +233,7 @@ public sealed record LocalDocumentMatch(
 public static class DocumentQueryRouter
 {
     private static readonly string[] SupportedExtensions = [".pdf", ".docx", ".txt", ".md", ".rtf"];
+    private static readonly string[] DocumentActionWords = ["find", "open", "read", "retrieve", "get", "show", "locate", "lookup", "look"];
 
     public static bool TryGetMostRecentKeyword(string input, out string keyword)
     {
@@ -296,6 +297,64 @@ public static class DocumentQueryRouter
             {
                 fileName = Path.GetFileName(trimmed);
                 return !string.IsNullOrWhiteSpace(fileName);
+            }
+        }
+
+        return false;
+    }
+
+    public static bool TryGetBareDocumentReference(string input, out string documentName)
+    {
+        documentName = string.Empty;
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return false;
+        }
+
+        var normalized = input.Trim();
+        if (normalized.Contains('.') && TryGetReferencedDocumentName(normalized, out var explicitFileName))
+        {
+            documentName = explicitFileName;
+            return true;
+        }
+
+        var tokens = normalized.Split([' ', '\n', '\r', '\t', '"', '\'', '(', ')', '[', ']', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length == 0)
+        {
+            return false;
+        }
+
+        var hasDocumentVerb = tokens.Any(token => DocumentActionWords.Contains(token.Trim().ToLowerInvariant()));
+        if (!hasDocumentVerb)
+        {
+            return false;
+        }
+
+        for (var index = 0; index < tokens.Length; index++)
+        {
+            var candidate = tokens[index].Trim().TrimEnd('?', '.', '!', ';', ':');
+            if (string.IsNullOrWhiteSpace(candidate))
+            {
+                continue;
+            }
+
+            var lower = candidate.ToLowerInvariant();
+            if (DocumentActionWords.Contains(lower) ||
+                lower is "document" or "file" or "named" or "called" or "me" or "for" or "the" or "a" or "an")
+            {
+                continue;
+            }
+
+            if (candidate.Contains('/') || candidate.Contains('\\'))
+            {
+                documentName = Path.GetFileNameWithoutExtension(candidate);
+                return !string.IsNullOrWhiteSpace(documentName);
+            }
+
+            if (candidate.Contains('_') || candidate.Contains('-'))
+            {
+                documentName = Path.GetFileNameWithoutExtension(candidate);
+                return !string.IsNullOrWhiteSpace(documentName);
             }
         }
 
