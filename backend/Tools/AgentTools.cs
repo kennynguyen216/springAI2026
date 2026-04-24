@@ -2,8 +2,6 @@ using System.ComponentModel;
 using System.Text;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.DependencyInjection;
-using UglyToad.PdfPig;
-using DocumentFormat.OpenXml.Packaging;
 
 public static class AgentTools
 {
@@ -61,33 +59,47 @@ public static class AgentTools
     }
 
     [Description("Reads the text content from a PDF file.")]
-    public static string ReadPdf(string filePath)
+    public static string ReadPdf(string filePath, IServiceProvider sp)
     {
-        try
-        {
-            using var pdf = PdfDocument.Open(filePath);
-            var text = string.Join("\n", pdf.GetPages().Select(page => page.Text));
-            return string.IsNullOrWhiteSpace(text) ? "The PDF is empty." : text;
-        }
-        catch (Exception ex)
-        {
-            return $"Error reading PDF: {ex.Message}";
-        }
+        var documents = sp.GetRequiredService<LocalDocumentService>();
+        return documents.ReadDocumentText(filePath);
     }
 
     [Description("Reads the text content from a Word (.docx) document.")]
-    public static string ReadWord(string filePath)
+    public static string ReadWord(string filePath, IServiceProvider sp)
     {
-        try
+        var documents = sp.GetRequiredService<LocalDocumentService>();
+        return documents.ReadDocumentText(filePath);
+    }
+
+    [Description("Finds recent local documents by keyword across Documents, Desktop, Downloads, and the project folder.")]
+    public static Task<string> FindRecentDocuments(string keyword, int maxResults, IServiceProvider sp)
+    {
+        var documents = sp.GetRequiredService<LocalDocumentService>();
+        var matches = documents.FindRecentDocuments(keyword, maxResults);
+
+        if (matches.Count == 0)
         {
-            using var doc = WordprocessingDocument.Open(filePath, false);
-            var body = doc.MainDocumentPart?.Document?.Body;
-            return body?.InnerText ?? "The Word document is empty or unreadable.";
+            return Task.FromResult($"No local documents were found matching '{keyword}'.");
         }
-        catch (Exception ex)
+
+        var builder = new StringBuilder();
+        foreach (var match in matches)
         {
-            return $"Error reading Word doc: {ex.Message}";
+            builder.AppendLine(match.Name);
+            builder.AppendLine($"Path: {match.FullPath}");
+            builder.AppendLine($"Last modified (UTC): {match.LastWriteTimeUtc:yyyy-MM-dd HH:mm:ss}");
+            builder.AppendLine();
         }
+
+        return Task.FromResult(builder.ToString().Trim());
+    }
+
+    [Description("Returns the single most recent local document that matches a keyword, such as syllabus, invoice, or notes.")]
+    public static Task<string> GetMostRecentDocument(string keyword, IServiceProvider sp)
+    {
+        var documents = sp.GetRequiredService<LocalDocumentService>();
+        return Task.FromResult(documents.DescribeMostRecentDocument(keyword));
     }
 
     [Description("Reads recent local sample emails from the configured sample directory.")]

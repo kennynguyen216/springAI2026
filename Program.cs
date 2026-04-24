@@ -3,7 +3,6 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.FileProviders;
 using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
-using ModelContextProtocol.Client;
 using OpenAI;
 using System.ClientModel;
 using Microsoft.Extensions.Options;
@@ -53,6 +52,7 @@ builder.Services.AddSingleton<IEmbeddingGenerator<string, Embedding<float>>>(sp 
 });
 
 builder.Services.AddScoped<LocalMailboxService>();
+builder.Services.AddSingleton<LocalDocumentService>();
 builder.Services.AddScoped<StructuredAgentRunner>();
 builder.Services.AddScoped<EmailClassificationAgent>();
 builder.Services.AddScoped<EmailSummaryAgent>();
@@ -93,19 +93,17 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
     try
     {
         string threadId = request.ThreadId ?? Guid.NewGuid().ToString("N");
-        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        string downloadsPath = Path.Combine(userProfile, "Downloads");
-
-        
-        var transport = new StdioClientTransport(new StdioClientTransportOptions
+        if (DocumentQueryRouter.TryGetMostRecentKeyword(request.Message, out var keyword))
         {
-            Command = "npx",
-            Arguments = ["-y", "@modelcontextprotocol/server-filesystem", desktopPath, downloadsPath]
-        });
+            var documents = sp.GetRequiredService<LocalDocumentService>();
+            var routedResponse = documents.DescribeMostRecentDocument(keyword);
 
-        await using var mcpClient = await McpClient.CreateAsync(transport);
-        var mcpTools = await mcpClient.ListToolsAsync();
+            db.Messages.Add(new ChatMessage { ThreadId = threadId, Role = "user", Content = request.Message, Timestamp = DateTime.UtcNow });
+            db.Messages.Add(new ChatMessage { ThreadId = threadId, Role = "assistant", Content = routedResponse, Timestamp = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new ChatResponse(routedResponse, threadId));
+        }
 
         // Recall History using models from Database.cs
         var dbMessages = await db.Messages
@@ -129,6 +127,8 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
             AIFunctionFactory.Create(AgentTools.GetWeatherAndTime),
             AIFunctionFactory.Create(AgentTools.ReadPdf),
             AIFunctionFactory.Create(AgentTools.ReadWord),
+            AIFunctionFactory.Create(AgentTools.FindRecentDocuments),
+            AIFunctionFactory.Create(AgentTools.GetMostRecentDocument),
             AIFunctionFactory.Create(AgentTools.ReadRecentEmails),
             AIFunctionFactory.Create(AgentTools.SyncAndOrganizeRecentEmails),
             AIFunctionFactory.Create(AgentTools.SearchOrganizedEmails),
@@ -136,11 +136,9 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
             AIFunctionFactory.Create(AgentTools.AddToCalendar),
         };
 
-        var allTools = mcpTools.Cast<AITool>().Concat(alfredCapabilities).ToList();
-
         var runOptions = new ChatClientAgentRunOptions 
         { 
-            ChatOptions = new ChatOptions { Tools = allTools, Temperature = 0.0f } 
+            ChatOptions = new ChatOptions { Tools = alfredCapabilities, Temperature = 0.0f } 
         };
 
         var agent = sp.GetRequiredKeyedService<AIAgent>("ChatAgent");

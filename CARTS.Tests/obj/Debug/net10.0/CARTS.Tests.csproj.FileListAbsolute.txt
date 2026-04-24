@@ -94,3 +94,11 @@
 /Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/obj/Debug/net10.0/CARTS.Tests.pdb
 /Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/obj/Debug/net10.0/CARTS.Tests.genruntimeconfig.cache
 /Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/obj/Debug/net10.0/ref/CARTS.Tests.dll
+/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/bin/Debug/net10.0/DocumentFormat.OpenXml.dll
+/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/bin/Debug/net10.0/DocumentFormat.OpenXml.Framework.dll
+/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/bin/Debug/net10.0/System.IO.Packaging.dll
+/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/bin/Debug/net10.0/UglyToad.PdfPig.dll
+/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/bin/Debug/net10.0/UglyToad.PdfPig.Core.dll
+/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/bin/Debug/net10.0/UglyToad.PdfPig.Fonts.dll
+/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/bin/Debug/net10.0/UglyToad.PdfPig.Tokenization.dll
+/Users/jaydenhong/Documents/GitHub/springAI2026/CARTS.Tests/bin/Debug/net10.0/UglyToad.PdfPig.Tokens.dll

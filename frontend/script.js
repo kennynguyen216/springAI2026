@@ -19,13 +19,20 @@ async function send() {
             body: JSON.stringify({ Message: val, ThreadId: threadId })
         });
         const data = await response.json();
+
+        if (!response.ok) {
+            const message = data?.detail || data?.title || "The backend returned an error while processing that request.";
+            throw new Error(message);
+        }
+
         threadId = data.threadId;
 
         removeThinking();
         renderBubble('alfred', data.response);
     } catch (e) {
         removeThinking();
-        renderBubble('alfred', "**System Error**: Unable to reach the C# backend.");
+        const message = e?.message || "Unable to reach the C# backend.";
+        renderBubble('alfred', `**System Error**: ${message}`);
     }
 }
 

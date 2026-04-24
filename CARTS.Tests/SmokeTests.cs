@@ -1,5 +1,7 @@
 using Xunit;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
 
 public class SmokeTests
 {
@@ -14,9 +16,9 @@ public class SmokeTests
     [Fact]
     public void EmailCategoryLabels_ReturnExpectedLocalLabels()
     {
-        Assert.Equal(["IMPORTANT", "INBOX"], EmailCategoryLabels.GetLabels(EmailCategory.Important));
-        Assert.Equal(["PROMOTIONS", "INBOX"], EmailCategoryLabels.GetLabels(EmailCategory.Promotions));
-        Assert.Equal(["SPAM"], EmailCategoryLabels.GetLabels(EmailCategory.Spam));
+        Assert.Equal(new[] { "IMPORTANT", "INBOX" }, EmailCategoryLabels.GetLabels(EmailCategory.Important));
+        Assert.Equal(new[] { "PROMOTIONS", "INBOX" }, EmailCategoryLabels.GetLabels(EmailCategory.Promotions));
+        Assert.Equal(new[] { "SPAM" }, EmailCategoryLabels.GetLabels(EmailCategory.Spam));
     }
 
     [Fact]
@@ -77,5 +79,54 @@ public class SmokeTests
         {
             Directory.Delete(tempDirectory, true);
         }
+    }
+
+    [Fact]
+    public void DocumentQueryRouter_ExtractsMostRecentKeyword()
+    {
+        var matched = DocumentQueryRouter.TryGetMostRecentKeyword("show the most recent syllabus", out var keyword);
+
+        Assert.True(matched);
+        Assert.Equal("syllabus", keyword);
+    }
+
+    [Fact]
+    public void LocalDocumentService_FindsMostRecentMatchingDocument()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"springAI2026-docs-{Guid.NewGuid():N}");
+        var docs = Path.Combine(root, "Documents");
+        var downloads = Path.Combine(root, "Downloads");
+        Directory.CreateDirectory(docs);
+        Directory.CreateDirectory(downloads);
+
+        try
+        {
+            var older = Path.Combine(docs, "cs101-syllabus.txt");
+            var newer = Path.Combine(downloads, "spring-syllabus.md");
+            File.WriteAllText(older, "older");
+            File.WriteAllText(newer, "newer");
+            File.SetLastWriteTimeUtc(older, new DateTime(2026, 4, 20, 8, 0, 0, DateTimeKind.Utc));
+            File.SetLastWriteTimeUtc(newer, new DateTime(2026, 4, 24, 8, 0, 0, DateTimeKind.Utc));
+
+            var service = new LocalDocumentService(new TestEnvironment(), [root, docs, downloads]);
+            var result = service.FindRecentDocuments("syllabus", 5);
+
+            Assert.Equal(2, result.Count);
+            Assert.Equal("spring-syllabus.md", result[0].Name);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    private sealed class TestEnvironment : IWebHostEnvironment
+    {
+        public string ApplicationName { get; set; } = "CARTS.Tests";
+        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+        public string WebRootPath { get; set; } = Path.GetTempPath();
+        public string EnvironmentName { get; set; } = "Development";
+        public string ContentRootPath { get; set; } = Path.GetTempPath();
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
 }
