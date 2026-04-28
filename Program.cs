@@ -27,6 +27,8 @@ builder.Services.AddScoped<IChatClient>(sp =>
     return openAiClient;
 });
 
+builder.Services.AddScoped<SensitivityClassifier>();
+
 builder.Services.AddAlfredAgent();
 builder.Services.AddEmailAgent();
 builder.Services.AddCalendarAgent();
@@ -122,7 +124,7 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
 });
 
 // Scan Inbox and Auto-Add to Calendar
-app.MapPost("/scan-inbox", async (AppDbContext db, IChatClient chatClient, ILogger<Program> logger) =>
+app.MapPost("/scan-inbox", async (AppDbContext db, IChatClient chatClient, SensitivityClassifier classifier, ILogger<Program> logger) =>
 {
     try
     {
@@ -130,12 +132,43 @@ app.MapPost("/scan-inbox", async (AppDbContext db, IChatClient chatClient, ILogg
         if (emailText.StartsWith("I was able to connect"))
             return Results.Problem("Could not read emails.");
 
+        // Split individual emails and run each through the classifier
+        var emails = emailText.Split("---", StringSplitOptions.RemoveEmptyEntries);
+        var relevantEmails = new List<string>();
+        int blockedCount = 0;
+        int irrelevantCount = 0;
+
+        foreach (var email in emails)
+        {
+            var classification = await classifier.ClassifyAsync(email.Trim());
+            if (classification == "relevant")
+                relevantEmails.Add(email.Trim());
+            else if (classification == "sensitive")
+            {
+                blockedCount++;
+                Console.WriteLine($"[CLASSIFIER] Blocked sensitive email.");
+            }
+            else
+            {
+                irrelevantCount++;
+                Console.WriteLine($"[CLASSIFIER] Skipped irrelevant email.");
+            }
+        }
+
+        if (relevantEmails.Count == 0)
+        {
+            string noRelevantMsg = $"No relevant emails found. ({irrelevantCount} irrelevant, {blockedCount} sensitive blocked.)";
+            return Results.Ok(new { added = 0, message = noRelevantMsg });
+        }
+
+        var emailTextFiltered = string.Join("\n\n---\n\n", relevantEmails);
+
         var prompt = $@"You are a date extraction assistant. Read the following emails and extract any important dates or events.
 Return ONLY a valid JSON array with no extra text. Each item must have: ""title"", ""date"" (YYYY-MM-DD format), ""time"" (optional, e.g. '7PM'), ""description"".
 If there are no important dates, return an empty array: []
 
 Emails:
-{emailText}";
+{emailTextFiltered}";
 
         var response = await chatClient.GetResponseAsync(prompt);
         var json = response.Text ?? "[]";
@@ -170,7 +203,8 @@ Emails:
 
         if (added > 0) await db.SaveChangesAsync();
 
-        return Results.Ok(new { added, message = added == 0 ? "No valid dates found." : $"Added {added} event(s): " + string.Join(", ", addedTitles) });
+        string summary = $" ({irrelevantCount} irrelevant skipped, {blockedCount} sensitive blocked.)";
+        return Results.Ok(new { added, message = added == 0 ? $"No valid dates found.{summary}" : $"Added {added} event(s): " + string.Join(", ", addedTitles) + summary });
     }
     catch (Exception ex)
     {
