@@ -158,26 +158,40 @@ public static class AgentTools
         }
     }
 
-    [Description("Saves a new event to the user's personal calendar database.")]
-    public static async Task<string> AddToCalendar(string title, string dateStr, string description, IServiceProvider sp)
+    [Description("Saves a new event to the user's personal calendar database. time is optional — only provide it if a specific time is mentioned.")]
+    public static async Task<string> AddToCalendar(string title, string dateStr, string description, AppDbContext db, string? time = null)
     {
-        using var scope = sp.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        if (DateTime.TryParse(dateStr, out DateTime parsedDate))
+        try
         {
-            var newEvent = new CalendarEvent 
-            { 
-                Title = title, 
-                EventDate = parsedDate, 
-                Description = description 
-            };
-        
-            db.Events.Add(newEvent);
-            await db.SaveChangesAsync();
-            return $"Successfully added '{title}' to your calendar for {parsedDate:MMMM dd, yyyy}.";
+
+            string cleanedDate = System.Text.RegularExpressions.Regex.Replace(dateStr, @"(\d+)(st|nd|rd|th)", "$1");
+            cleanedDate = cleanedDate.Replace(" at ", " ").Trim();
+
+            Console.WriteLine($"[AddToCalendar] title={title} | dateStr={dateStr} | cleanedDate={cleanedDate} | time={time}");
+
+            if (DateTime.TryParse(cleanedDate, out DateTime parsedDate))
+            {
+                string finalDescription = string.IsNullOrWhiteSpace(time)
+                    ? description
+                    : $"{time}{(string.IsNullOrWhiteSpace(description) ? "" : " — " + description)}";
+
+                db.Events.Add(new CalendarEvent
+                {
+                    Title = title,
+                    EventDate = parsedDate,
+                    Description = finalDescription
+                });
+                await db.SaveChangesAsync();
+                return $"Successfully added '{title}' to your calendar for {parsedDate:MMMM dd, yyyy}{(string.IsNullOrWhiteSpace(time) ? "" : " at " + time)}.";
+            }
+
+            Console.WriteLine($"[AddToCalendar] Failed to parse: {cleanedDate}");
+            return "I couldn't parse that date. Please provide it in a clearer format (e.g., 2026-05-01).";
         }
-    
-        return "I couldn't parse that date. Please tell me the date in a clearer format (e.g., YYYY-MM-DD).";
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AddToCalendar] Exception: {ex.Message}");
+            return $"Error adding event: {ex.Message}";
+        }
     }
 }

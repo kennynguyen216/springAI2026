@@ -56,6 +56,23 @@ function renderBubble(role, text) {
     return div;
 }
 
+async function scanInbox() {
+    const btn = document.getElementById('nav-scan');
+    btn.innerText = '⏳ Scanning...';
+    btn.disabled = true;
+    try {
+        const res = await fetch('/scan-inbox', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message);
+        await loadEvents();
+    } catch (e) {
+        alert('Error scanning inbox.');
+    } finally {
+        btn.innerText = '📧 SCAN INBOX';
+        btn.disabled = false;
+    }
+}
+
 function nav(view) {
     const chat = document.getElementById('chat-view'), cal = document.getElementById('calendar-view');
     const nc = document.getElementById('nav-chat'), ncal = document.getElementById('nav-cal');

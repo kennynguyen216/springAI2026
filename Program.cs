@@ -3,7 +3,6 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.FileProviders;
 using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
-using ModelContextProtocol.Client;
 using OpenAI;
 using System.ClientModel;
 
@@ -59,20 +58,6 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
     try
     {
         string threadId = request.ThreadId ?? Guid.NewGuid().ToString("N");
-        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        string downloadsPath = Path.Combine(userProfile, "Downloads");
-
-        
-        var transport = new StdioClientTransport(new StdioClientTransportOptions
-        {
-            Command = "npx",
-            Arguments = ["-y", "@modelcontextprotocol/server-filesystem", desktopPath, downloadsPath]
-        });
-
-        await using var mcpClient = await McpClient.CreateAsync(transport);
-        var mcpTools = await mcpClient.ListToolsAsync();
-
         // Recall History using models from Database.cs
         var dbMessages = await db.Messages
             .Where(m => m.ThreadId == threadId)
@@ -96,10 +81,15 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
             AIFunctionFactory.Create(AgentTools.ReadPdf),
             AIFunctionFactory.Create(AgentTools.ReadWord),
             AIFunctionFactory.Create(AgentTools.ReadRecentEmails),
-            AIFunctionFactory.Create(AgentTools.AddToCalendar),
+            AIFunctionFactory.Create(
+                (string title, string dateStr, string description, string? time) =>
+                    AgentTools.AddToCalendar(title, dateStr, description, db, time),
+                "AddToCalendar",
+                "Saves a new event to the user's personal calendar database. time is optional — only provide it if a specific time is mentioned."
+            ),
         };
 
-        var allTools = mcpTools.Cast<AITool>().Concat(alfredCapabilities).ToList();
+        var allTools = alfredCapabilities;
 
         var runOptions = new ChatClientAgentRunOptions 
         { 
@@ -127,6 +117,64 @@ app.MapPost("/chat", async (ChatRequest request, IServiceProvider sp, AppDbConte
     catch (Exception ex)
     {
         logger.LogError(ex, "Chat Error");
+        return Results.Problem(ex.Message);
+    }
+});
+
+// Scan Inbox and Auto-Add to Calendar
+app.MapPost("/scan-inbox", async (AppDbContext db, IChatClient chatClient, ILogger<Program> logger) =>
+{
+    try
+    {
+        var emailText = await AgentTools.ReadRecentEmails();
+        if (emailText.StartsWith("I was able to connect"))
+            return Results.Problem("Could not read emails.");
+
+        var prompt = $@"You are a date extraction assistant. Read the following emails and extract any important dates or events.
+Return ONLY a valid JSON array with no extra text. Each item must have: ""title"", ""date"" (YYYY-MM-DD format), ""time"" (optional, e.g. '7PM'), ""description"".
+If there are no important dates, return an empty array: []
+
+Emails:
+{emailText}";
+
+        var response = await chatClient.GetResponseAsync(prompt);
+        var json = response.Text ?? "[]";
+
+        json = json.Trim();
+        if (json.Contains("```"))
+            json = System.Text.RegularExpressions.Regex.Match(json, @"\[.*\]", System.Text.RegularExpressions.RegexOptions.Singleline).Value;
+
+        var events = System.Text.Json.JsonSerializer.Deserialize<List<System.Text.Json.JsonElement>>(json);
+        if (events == null || events.Count == 0)
+            return Results.Ok(new { added = 0, message = "No important dates found in your inbox." });
+
+        int added = 0;
+        var addedTitles = new List<string>();
+
+        foreach (var ev in events)
+        {
+            var title = ev.TryGetProperty("title", out var t) ? t.GetString() ?? "" : "";
+            var dateStr = ev.TryGetProperty("date", out var d) ? d.GetString() ?? "" : "";
+            var time = ev.TryGetProperty("time", out var ti) ? ti.GetString() : null;
+            var description = ev.TryGetProperty("description", out var desc) ? desc.GetString() ?? "" : "";
+
+            if (string.IsNullOrWhiteSpace(title) || !DateTime.TryParse(dateStr, out var parsedDate))
+                continue;
+
+            string finalDescription = string.IsNullOrWhiteSpace(time) ? description : $"{time}{(string.IsNullOrWhiteSpace(description) ? "" : " — " + description)}";
+
+            db.Events.Add(new CalendarEvent { Title = title, EventDate = parsedDate, Description = finalDescription });
+            addedTitles.Add($"{title} on {parsedDate:MMMM d, yyyy}{(string.IsNullOrWhiteSpace(time) ? "" : " at " + time)}");
+            added++;
+        }
+
+        if (added > 0) await db.SaveChangesAsync();
+
+        return Results.Ok(new { added, message = added == 0 ? "No valid dates found." : $"Added {added} event(s): " + string.Join(", ", addedTitles) });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Scan inbox error");
         return Results.Problem(ex.Message);
     }
 });
