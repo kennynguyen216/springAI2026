@@ -1,7 +1,15 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+
+/// <summary>
+/// Registers the email specialist agent.
+/// </summary>
 public static class EmailAgent
 {
+    /// <summary>
+    /// Adds the email specialist agent registration to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection being configured.</param>
     public static void AddEmailAgent(this IServiceCollection services)
     {
         services.AddKeyedScoped<AIAgent>("EmailAgent", (sp, key) =>

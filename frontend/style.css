@@ -1,89 +1,10 @@
-:root {
-    --lsu-purple: #461D7C;
-    --lsu-gold: #FDD023;
-    --bg: #f4f7f6;
-    --white: #ffffff;
-}
-
-* { box-sizing: border-box; }
-body, html { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; height: 100%; overflow: hidden; background: var(--bg); }
-
-.app-shell { display: flex; height: 100vh; width: 100vw; }
-
-/* Sidebar - LSU Text at Bottom Fix */
-.sidebar { 
-    width: 260px; 
-    background: var(--lsu-purple); 
-    color: var(--lsu-gold); 
-    display: flex; 
-    flex-direction: column; 
-    padding: 25px; 
-    flex-shrink: 0; 
-}
-.sidebar h1 { text-align: center; border-bottom: 2px solid var(--lsu-gold); padding-bottom: 15px; margin-bottom: 30px; letter-spacing: 2px; }
-.nav-item { background: transparent; border: 1px solid var(--lsu-gold); color: var(--lsu-gold); padding: 15px; margin-bottom: 12px; cursor: pointer; border-radius: 10px; font-weight: 600; text-align: left; }
-.nav-item.active { background: var(--lsu-gold); color: var(--lsu-purple); }
-
-.sidebar-footer { 
-    margin-top: auto; /* This pins it to the bottom */
-    text-align: center; 
-    font-size: 0.8rem; 
-    font-weight: 800; 
-    opacity: 0.8;
-    padding-top: 20px;
-}
-
-/* Chat Layout */
-.main-stage { flex: 1; display: flex; flex-direction: column; height: 100vh; position: relative; }
-#chat-view { display: flex; flex-direction: column; height: 100%; }
-#chat-container { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 15px; }
-
-/* Bubbles - No More Big Spacing */
-.bubble { 
-    width: fit-content; 
-    max-width: 80%; 
-    padding: 12px 18px; 
-    border-radius: 18px; 
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
-    line-height: 1.5; 
-}
-.user { align-self: flex-end; background: var(--lsu-purple); color: white; border-bottom-right-radius: 2px; }
-.alfred { align-self: flex-start; background: var(--white); border-left: 5px solid var(--lsu-gold); border-bottom-left-radius: 2px; color: #2c3e50; }
-
-/* Thinking Animation Restore */
-.thinking-bubble { display: flex; align-items: center; gap: 5px; padding: 15px 20px !important; }
-.dot { width: 8px; height: 8px; background-color: var(--lsu-purple); border-radius: 50%; opacity: 0.4; animation: pulse 1.5s infinite ease-in-out; }
-.dot:nth-child(2) { animation-delay: 0.2s; }
-.dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes pulse { 0%, 100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.2); opacity: 1; } }
-
-/* Input Bar */
-.input-tray { background: var(--white); padding: 20px 30px; border-top: 1px solid #eee; display: flex; gap: 15px; flex-shrink: 0; }
-input[type="text"] { flex: 1; padding: 14px; border: 1px solid #ddd; border-radius: 10px; outline: none; }
-.btn-send { background: var(--lsu-purple); color: white; border: none; padding: 0 30px; border-radius: 10px; font-weight: bold; cursor: pointer; }
-
-/* Calendar Grid */
-#calendar-view { display: none; padding: 30px; flex-direction: column; height: 100%; overflow-y: auto; }
-.cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.cal-header-center { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.cal-header-center h2 { margin: 0; }
-#year-select { border: 1px solid #ddd; border-radius: 6px; padding: 4px 10px; font-size: 0.9rem; color: var(--lsu-purple); font-weight: bold; cursor: pointer; background: white; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #eee; gap: 1px; border-radius: 8px; border: 1px solid #ddd; overflow: hidden; }
-.cal-day-label { background: var(--lsu-purple); color: var(--lsu-gold); text-align: center; padding: 10px; font-weight: bold; }
-.cal-cell { background: white; min-height: 110px; padding: 10px; }
-
-#event-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
-#event-modal.active { display: flex; }
-.modal-box { background: white; border-radius: 12px; padding: 30px; max-width: 420px; width: 90%; border-top: 5px solid var(--lsu-gold); }
-.modal-box h2 { color: var(--lsu-purple); margin: 0 0 16px; font-size: 1.2rem; }
-.modal-label { font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; color: var(--lsu-gold); margin: 12px 0 2px; }
-.modal-box p { color: #444; margin: 0; }
-.modal-actions { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
-.modal-actions button { border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-.btn-delete { background: #fee2e2; color: #dc2626; }
-.btn-edit { background: #fef9c3; color: #854d0e; }
-.modal-actions button:not(.btn-delete):not(.btn-edit) { background: var(--lsu-purple); color: white; }
-#modal-edit input, #add-modal input { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; margin-bottom: 4px; box-sizing: border-box; }
-#add-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
-#add-modal.active { display: flex; }
-.btn-add-event { background: var(--lsu-gold); color: var(--lsu-purple); border: none; padding: 8px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+@import url("/styles/tokens.css");
+@import url("/styles/base.css");
+@import url("/components/sidebar/sidebar.css");
+@import url("/components/sidebar-context-menu/sidebar-context-menu.css");
+@import url("/components/topbar/topbar.css");
+@import url("/components/empty-state/empty-state.css");
+@import url("/components/chat-thread/chat-thread.css");
+@import url("/components/chat-input/chat-input.css");
+@import url("/components/calendar/calendar.css");
+@import url("/components/settings-panel/settings-panel.css");

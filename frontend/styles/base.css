@@ -1,0 +1,119 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    min-height: 100%;
+}
+
+body {
+    font-family: "Inter", sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.15), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.12), transparent 24%),
+        var(--surface-base);
+    color: var(--text-strong);
+}
+
+button,
+input,
+textarea {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+img,
+svg {
+    display: block;
+}
+
+#app {
+    min-height: 100vh;
+}
+
+.alfred-app-shell,
+.app-layout {
+    min-height: 100vh;
+}
+
+.app-layout {
+    display: flex;
+}
+
+.app-layout--sidebar-open {
+    --sidebar-width: 318px;
+}
+
+.app-layout--sidebar-closed {
+    --sidebar-width: 92px;
+}
+
+.workspace-shell {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.workspace-main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+}
+
+.workspace-main--landing {
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.landing-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: min(100%, 62rem);
+    margin: 0 auto;
+}
+
+::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+@media (max-width: 900px) {
+    .app-layout {
+        display: block;
+    }
+}
+
+@media (min-width: 901px) {
+    .app-layout {
+        display: block;
+        padding-left: var(--sidebar-width, 318px);
+        transition: padding-left 180ms ease;
+    }
+
+    .workspace-shell {
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+    }
+}

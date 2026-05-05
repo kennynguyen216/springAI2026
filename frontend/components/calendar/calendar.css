@@ -1,0 +1,215 @@
+.calendar-view {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+.calendar-view__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.calendar-view__title {
+    margin: 0;
+    font-size: clamp(1.75rem, 3vw, 2.4rem);
+    letter-spacing: -0.04em;
+}
+
+.calendar-view__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.calendar-view__nav,
+.calendar-view__today,
+.calendar-view__add,
+.calendar-modal__cancel,
+.calendar-modal__save,
+.calendar-modal__delete {
+    min-height: 2.7rem;
+    padding: 0 0.95rem;
+    border-radius: 999px;
+    font: inherit;
+    transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.calendar-view__nav,
+.calendar-view__today,
+.calendar-modal__cancel {
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-card);
+    color: var(--text-strong);
+}
+
+.calendar-view__add,
+.calendar-modal__save {
+    border: none;
+    background: linear-gradient(135deg, var(--accent-strong), var(--accent-soft));
+    color: var(--white);
+}
+
+.calendar-modal__delete {
+    border: 1px solid var(--danger-border);
+    background: var(--danger-surface);
+    color: var(--danger-text);
+}
+
+.calendar-view__weekdays,
+.calendar-view__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.calendar-view__weekday {
+    padding: 0.45rem 0.2rem;
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: center;
+}
+
+.calendar-view__cell {
+    min-height: 8.2rem;
+    padding: 0.85rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 1.2rem;
+    background: var(--surface-card);
+    text-align: left;
+    box-shadow: var(--shadow-soft);
+}
+
+.calendar-view__cell:hover,
+.calendar-view__nav:hover,
+.calendar-view__today:hover,
+.calendar-view__add:hover,
+.calendar-modal__cancel:hover,
+.calendar-modal__save:hover,
+.calendar-modal__delete:hover {
+    transform: translateY(-1px);
+}
+
+.calendar-view__cell--empty {
+    visibility: hidden;
+}
+
+.calendar-view__day {
+    font-weight: 700;
+    margin-bottom: 0.65rem;
+}
+
+.calendar-view__event-chip {
+    margin-top: 0.35rem;
+    padding: 0.38rem 0.55rem;
+    border-radius: 0.8rem;
+    background: var(--accent-wash);
+    color: var(--text-strong);
+    font-size: 0.82rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.calendar-view__more,
+.calendar-view__error {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.calendar-view__error {
+    padding: 0 0.25rem;
+}
+
+.calendar-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 25;
+}
+
+.calendar-modal__card {
+    width: min(28rem, 100%);
+    padding: 1.2rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 1.4rem;
+    background: var(--surface-elevated);
+    box-shadow: var(--shadow-strong);
+}
+
+.calendar-modal__title {
+    margin: 0 0 1rem;
+}
+
+.calendar-modal__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.calendar-modal__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.calendar-modal__label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.calendar-modal__input {
+    min-height: 2.9rem;
+    padding: 0 0.9rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.95rem;
+    background: var(--surface-card);
+    color: var(--text-strong);
+    font: inherit;
+}
+
+.calendar-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 900px) {
+    .calendar-view {
+        padding: 1rem;
+    }
+
+    .calendar-view__header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .calendar-view__controls {
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 720px) {
+    .calendar-view__weekdays,
+    .calendar-view__grid {
+        gap: 0.45rem;
+    }
+
+    .calendar-view__cell {
+        min-height: 6.2rem;
+        padding: 0.55rem;
+    }
+}

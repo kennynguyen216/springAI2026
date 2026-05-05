@@ -1,8 +1,15 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
+/// <summary>
+/// Registers the calendar specialist agent.
+/// </summary>
 public static class CalendarAgent
 {
+    /// <summary>
+    /// Adds the calendar specialist agent registration to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection being configured.</param>
     public static void AddCalendarAgent(this IServiceCollection services)
     {
         services.AddKeyedScoped<AIAgent>("CalendarAgent", (sp, key) =>

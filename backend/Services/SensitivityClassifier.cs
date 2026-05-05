@@ -1,6 +1,9 @@
 using OpenAI;
 using System.ClientModel;
 
+/// <summary>
+/// Classifies inbox messages by sensitivity and event relevance.
+/// </summary>
 public class SensitivityClassifier
 {
     private readonly OpenAI.Chat.ChatClient _client;
@@ -21,6 +24,11 @@ public class SensitivityClassifier
 
 Respond with ONLY one word: 'sensitive', 'relevant', or 'irrelevant'. No explanation. No punctuation.";
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SensitivityClassifier"/> class.
+    /// </summary>
+    /// <param name="config">The application configuration.</param>
+    /// <param name="logger">The logger instance.</param>
     public SensitivityClassifier(IConfiguration config, ILogger<SensitivityClassifier> logger)
     {
         var endpoint = config["Embeddings:Endpoint"] ?? "http://localhost:11434/v1";
@@ -29,7 +37,11 @@ Respond with ONLY one word: 'sensitive', 'relevant', or 'irrelevant'. No explana
         _logger = logger;
     }
 
-    // Returns: "sensitive", "relevant", or "irrelevant"
+    /// <summary>
+    /// Classifies the provided email content as sensitive, relevant, or irrelevant.
+    /// </summary>
+    /// <param name="emailContent">The email content to classify.</param>
+    /// <returns>The classification label.</returns>
     public async Task<string> ClassifyAsync(string emailContent)
     {
         try

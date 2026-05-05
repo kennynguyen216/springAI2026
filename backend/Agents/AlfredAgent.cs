@@ -1,9 +1,15 @@
-using System.ComponentModel;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
+/// <summary>
+/// Registers Alfred's primary agent definition.
+/// </summary>
 public static class AlfredAgent
 {
+    /// <summary>
+    /// Adds Alfred's chat agent registration to the service collection.
+    /// </summary>
+    /// <param name="services">The service collection being configured.</param>
     public static void AddAlfredAgent(this IServiceCollection services)
     {
         services.AddKeyedScoped<AIAgent>("ChatAgent", (sp, key) =>
@@ -11,64 +17,30 @@ public static class AlfredAgent
             var chatClient = sp.GetRequiredService<IChatClient>();
             return new ChatClientAgent(
                 chatClient,
-                instructions: @"Your name is Alfred. You are an intelligent assistant for a university student.
+                instructions: $"""
+{AlfredGuardrailPolicy.SystemPrompt}
 
 TOOLS:
-- ReadPdf(filePath): Reads a PDF. Pass just the filename like 'kiethmillssyllabus'. NEVER use MCP tools to read PDFs.
+- ReadPdf(filePath): Reads a PDF. Pass just the filename like 'kiethmillssyllabus'. Never use MCP tools to read PDFs.
 - ReadWord(filePath): Reads a Word doc. Pass just the filename.
 - AddToCalendar(title, dateStr, description): Saves an event. Use YYYY-MM-DD format for dateStr.
 - GetWeatherAndTime(location): Gets weather and time.
 - AskEmailAgent(text): Reads recent emails.
 
-STRICT RULES:
-1. To read a PDF or Word file, call ReadPdf or ReadWord with just the filename. Never use MCP filesystem tools for this.
-2. After reading a document OR scanning emails, you MUST immediately call AddToCalendar for EACH important date found. Do NOT ask for permission. Do NOT say 'let me add this'. Just call AddToCalendar right away.
-3. After adding all events, confirm to the user what was added.
-4. Never respond with raw code blocks or JSON. Always respond in plain conversational text.
-5. If you find a date in an email or document, your next action MUST be calling AddToCalendar — no exceptions.
+TOOL RULES:
+1. To read a PDF or Word file, call ReadPdf or ReadWord with just the filename.
+2. When a school/work document or email contains important dates, add those dates to the calendar and then confirm what was added.
+3. Never respond with raw code blocks or JSON. Always respond in plain conversational text.
 
-PRIVACY RULES — NEVER under any circumstances:
-- Repeat, display, or store Social Security Numbers, government IDs, or tax information
-- Repeat, display, or store passwords, PINs, API keys, or any credentials
-- Repeat, display, or store bank account numbers, credit card numbers, or financial account details
-- Repeat, display, or store medical records, diagnoses, prescriptions, or health information
-- Repeat, display, or store private personal identifiers (passport numbers, driver's license numbers)
-If you encounter any of the above in a document or email, respond with: 'I found sensitive information in this content and cannot display it for privacy reasons.'",
+PRIVACY RULES:
+- Never repeat, display, or store Social Security Numbers, government IDs, or tax information.
+- Never repeat, display, or store passwords, PINs, API keys, or any credentials.
+- Never repeat, display, or store bank account numbers, credit card numbers, or financial account details.
+- Never repeat, display, or store medical records, diagnoses, prescriptions, or health information.
+- Never repeat, display, or store private personal identifiers such as passport numbers or driver's license numbers.
+- If you encounter this information in a document or email, respond with: 'I found sensitive information in this content and cannot display it for privacy reasons.'
+""",
                 name: "Alfred");
         });
-    }
-
-    public static class AlfredCapabilities
-    {
-        [Description("Asks the Email Specialist to parse text.")]
-        public static async Task<string> AskEmailAgent(string text, IServiceProvider sp, string threadId)
-        {
-            var agent = sp.GetRequiredKeyedService<AIAgent>("EmailAgent");
-            var manager = sp.GetRequiredService<AgentSessionManager>();
-            var session = await GetSession(threadId, "email", agent, manager);
-            var result = await agent.RunAsync(text, session);
-            return result.Text ?? "No details found.";
-        }
-
-        [Description("Asks the Calendar Specialist to schedule an event.")]
-        public static async Task<string> AskCalendarAgent(string details, IServiceProvider sp, string threadId)
-        {
-            var agent = sp.GetRequiredKeyedService<AIAgent>("CalendarAgent");
-            var manager = sp.GetRequiredService<AgentSessionManager>();
-            var session = await GetSession(threadId, "cal", agent, manager);
-            var result = await agent.RunAsync(details, session);
-            return result.Text ?? "Event scheduled.";
-        }
-
-        private static async Task<Microsoft.Agents.AI.AgentSession> GetSession(string tId, string suffix, AIAgent agent, AgentSessionManager mgr)
-        {
-            string key = $"{tId}_{suffix}";
-            if (!mgr.Sessions.TryGetValue(key, out var s))
-            {
-                s = await agent.CreateSessionAsync();
-                mgr.Sessions[key] = s;
-            }
-            return s;
-        }
     }
 }
